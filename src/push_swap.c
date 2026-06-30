@@ -24,24 +24,14 @@ void            ft_is_ordered(t_pile *p1, t_pile *p2)
 
 int                     call_alg(t_pile *p1, t_pile *p2, int k)
 {
-        t_pivot         v;
 
-        v.min = pile_min(p1);
-        v.max = pile_max(p1);
-        v.op = k;
         ft_is_ordered(p1, p2);
-        if (pile_len(p1) > 5 || pile_len(p1) < 3)
-        {
-                solve_it(&p1, &p2, 1, v);
-                while (p1 && p1->x != v.min)
-                {
-                        if (p1->next && p1->next->x != v.min && p1->next->x < p1->x)
-                                sab(&p1, "sa\n", k);
-                        rab(&p1, "ra\n", k);
-                }
-        }
-        else
+        if (pile_len(p1) > 5)
+                cost_sort(&p1, &p2, k);
+        else if (pile_len(p1) >= 3)
                 mini_solve(&p1, &p2, k);
+        else if (pile_len(p1) == 2 && p1->x > p1->next->x)
+                sab(&p1, "sa\n", k);
         free_pile(&p1);
         free_pile(&p2);
         return (0);
