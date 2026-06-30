@@ -1,842 +1,2117 @@
 <!DOCTYPE html>
-<html lang="fr" data-theme="dark">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>push_swap — Guide de Référence, Algorithme & CI/CD (École 42)</title>
-    
-    <!-- Google Fonts -->
+    <title>push_swap — The Reference Guide · Cost-Based Insertion Sort (École 42)</title>
+    <meta name="description" content="A complete, pedagogical guide to the push_swap project at 42 school: from a quicksort baseline (4/5) to a cost-based insertion sort (5/5). Real C code, visual diagrams, benchmarks, and the checker fix story.">
+
+    <!-- Google Fonts: Inter (body) + Fira Code (code) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- FontAwesome for Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- FontAwesome (icons) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
     <style>
+        /* ════════════════════════════════════════════════════════════════════
+           DESIGN TOKENS — Deep Abyss + Cyan / Violet
+           ════════════════════════════════════════════════════════════════════ */
         :root {
-            /* ══ Color Palette (Deep Abyss & Cyan Light) ══ */
-            --bg-base: #060913;
-            --bg-surface: #0b1120;
-            --bg-card: rgba(15, 23, 42, 0.65);
-            --border-color: rgba(30, 41, 59, 0.7);
-            --border-hover: rgba(56, 189, 248, 0.4);
-            
-            --text-primary: #f8fafc;
+            --bg-base:      #060913;
+            --bg-surface:   #0b1120;
+            --bg-elevated:  #0f172a;
+            --bg-card:      rgba(15, 23, 42, 0.72);
+            --bg-code:      #0a0f1d;
+
+            --border:       rgba(30, 41, 59, 0.85);
+            --border-soft:  rgba(51, 65, 85, 0.45);
+            --border-hover: rgba(56, 189, 248, 0.45);
+
+            --text-primary:   #f8fafc;
             --text-secondary: #94a3b8;
-            --text-muted: #64748b;
-            
-            --primary: #38bdf8;         /* Cyan */
-            --primary-glow: rgba(56, 189, 248, 0.25);
-            --accent: #a855f7;          /* Violet */
-            --accent-glow: rgba(168, 85, 247, 0.25);
-            
-            --success: #34d399;         /* Emerald */
-            --warning: #fbbf24;         /* Amber */
-            --danger: #f87171;          /* Red */
-            
-            --sans-font: 'Inter', system-ui, -apple-system, sans-serif;
-            --mono-font: 'Fira Code', 'IBM Plex Mono', monospace;
-            
-            --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --text-muted:     #64748b;
+
+            --primary:      #38bdf8;   /* cyan  */
+            --primary-glow: rgba(56, 189, 248, 0.22);
+            --accent:       #a855f7;   /* violet */
+            --accent-glow:  rgba(168, 85, 247, 0.22);
+
+            --success: #34d399;
+            --warning: #fbbf24;
+            --danger:  #f87171;
+
+            --sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            --mono: 'Fira Code', 'JetBrains Mono', 'IBM Plex Mono', monospace;
+
+            --radius-sm: 8px;
+            --radius:    14px;
+            --radius-lg: 20px;
+            --maxw:      1180px;
+            --ease:      cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* ══ Custom Scrollbar ══ */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: var(--bg-base);
-        }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(30, 41, 59, 0.9);
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--primary);
-        }
-
-        /* ══ Animations & Background Caustics ══ */
-        @keyframes drift {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
-        @keyframes float-up {
-            0% { transform: translateY(0) scale(1); opacity: 0.1; }
-            50% { opacity: 0.3; }
-            100% { transform: translateY(-100px) scale(1.1); opacity: 0; }
-        }
-
-        /* ══ Reset and Global Layout ══ */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        html {
-            scroll-behavior: smooth;
-        }
-
+        /* ════════════════════════════════════════════════════════════════════
+           RESET
+           ════════════════════════════════════════════════════════════════════ */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; scroll-padding-top: 96px; -webkit-text-size-adjust: 100%; }
         body {
-            font-family: var(--sans-font);
-            background-color: var(--bg-base);
+            font-family: var(--sans);
+            background: var(--bg-base);
             color: var(--text-primary);
-            line-height: 1.6;
-            min-height: 100vh;
+            line-height: 1.7;
+            font-weight: 400;
+            font-size: 16px;
             overflow-x: hidden;
-            position: relative;
+            -webkit-font-smoothing: antialiased;
+            text-rendering: optimizeLegibility;
         }
-
-        /* Ambient background glow */
+        /* Ambient background glows */
         body::before {
             content: '';
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            z-index: -2;
-            background: 
-                radial-gradient(circle at 10% 20%, rgba(56, 189, 248, 0.08) 0%, transparent 40%),
-                radial-gradient(circle at 90% 80%, rgba(168, 85, 247, 0.08) 0%, transparent 40%),
-                radial-gradient(circle at 50% 50%, rgba(8, 14, 38, 0.5) 0%, transparent 100%);
+            position: fixed; inset: 0;
+            background:
+                radial-gradient(900px 600px at 12% -5%, rgba(56,189,248,0.10), transparent 60%),
+                radial-gradient(800px 500px at 95% 8%,  rgba(168,85,247,0.10), transparent 60%),
+                radial-gradient(700px 700px at 50% 120%, rgba(56,189,248,0.05), transparent 60%);
             pointer-events: none;
+            z-index: 0;
+        }
+        img { max-width: 100%; display: block; }
+        a { color: var(--primary); text-decoration: none; transition: color .2s var(--ease); }
+        a:hover { color: var(--accent); }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-track { background: var(--bg-base); }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; border: 2px solid var(--bg-base); }
+        ::-webkit-scrollbar-thumb:hover { background: #334155; }
+        ::selection { background: var(--primary-glow); color: var(--text-primary); }
+
+        /* ════════════════════════════════════════════════════════════════════
+           LAYOUT
+           ════════════════════════════════════════════════════════════════════ */
+        .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+        section { padding: 84px 0; position: relative; z-index: 1; }
+        section + section { border-top: 1px solid var(--border-soft); }
+
+        .eyebrow {
+            display: inline-flex; align-items: center; gap: 8px;
+            font-family: var(--mono); font-size: 12px; letter-spacing: .14em;
+            text-transform: uppercase; color: var(--primary);
+            padding: 6px 12px; border: 1px solid var(--border);
+            border-radius: 999px; background: rgba(56,189,248,0.06);
+            margin-bottom: 20px;
+        }
+        .eyebrow i { font-size: 11px; }
+
+        h1, h2, h3, h4 { font-weight: 700; line-height: 1.2; letter-spacing: -0.02em; }
+        h2.section-title { font-size: clamp(1.9rem, 4vw, 2.7rem); margin-bottom: 14px; }
+        h2.section-title .num {
+            font-family: var(--mono); color: var(--primary); font-size: 0.55em;
+            vertical-align: middle; margin-right: 14px; opacity: .8;
+        }
+        .section-lead { color: var(--text-secondary); font-size: 1.12rem; max-width: 760px; margin-bottom: 42px; }
+
+        h3 { font-size: 1.45rem; margin: 44px 0 16px; color: var(--text-primary); }
+        h3 .h-icon { color: var(--accent); margin-right: 10px; font-size: .85em; }
+        h4 { font-size: 1.12rem; margin: 28px 0 12px; color: var(--text-primary); }
+
+        p { margin-bottom: 16px; color: #cbd5e1; }
+        p code, li code, td code { font-family: var(--mono); font-size: .88em; background: rgba(56,189,248,0.10); color: var(--primary); padding: 2px 7px; border-radius: 6px; border: 1px solid rgba(56,189,248,0.18); }
+        ul, ol { margin: 0 0 20px 4px; padding-left: 22px; color: #cbd5e1; }
+        li { margin-bottom: 8px; }
+        li::marker { color: var(--primary); }
+        strong { color: #fff; font-weight: 600; }
+        em { color: var(--accent); font-style: normal; font-weight: 500; }
+
+        hr.soft { border: none; height: 1px; background: var(--border-soft); margin: 44px 0; }
+
+        /* ════════════════════════════════════════════════════════════════════
+           TOP NAV
+           ════════════════════════════════════════════════════════════════════ */
+        .topbar {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+            background: rgba(6,9,19,0.72);
+            border-bottom: 1px solid var(--border);
+            transition: box-shadow .3s var(--ease);
+        }
+        .topbar.scrolled { box-shadow: 0 8px 30px rgba(0,0,0,0.5); }
+        .topbar-inner { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+        .brand { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 1.02rem; letter-spacing: -0.01em; }
+        .brand .logo {
+            width: 34px; height: 34px; border-radius: 9px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            display: grid; place-items: center; color: #060913; font-family: var(--mono); font-weight: 700;
+            box-shadow: 0 0 22px var(--primary-glow);
+        }
+        .brand small { color: var(--text-muted); font-weight: 400; font-size: .72rem; display: block; letter-spacing: .04em; }
+        .nav-actions { display: flex; align-items: center; gap: 18px; }
+        .nav-actions a.github-link { color: var(--text-secondary); font-size: .9rem; display: inline-flex; align-items: center; gap: 8px; }
+        .nav-actions a.github-link:hover { color: var(--primary); }
+        .toc-toggle {
+            display: none; background: none; border: 1px solid var(--border); color: var(--text-primary);
+            width: 40px; height: 40px; border-radius: 9px; cursor: pointer; font-size: 1rem;
+        }
+        @media (max-width: 860px) { .toc-toggle { display: grid; place-items: center; } .nav-actions .github-link span { display: none; } }
+
+        /* ════════════════════════════════════════════════════════════════════
+           LAYOUT WITH STICKY TOC
+           ════════════════════════════════════════════════════════════════════ */
+        .layout { display: grid; grid-template-columns: 248px 1fr; gap: 56px; max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+        .toc-sidebar {
+            position: sticky; top: 88px; align-self: start;
+            max-height: calc(100vh - 110px); overflow-y: auto;
+            padding: 8px 0 8px 0;
+        }
+        .toc-sidebar h5 {
+            font-family: var(--mono); font-size: 11px; letter-spacing: .16em; text-transform: uppercase;
+            color: var(--text-muted); margin: 0 0 14px 4px;
+        }
+        .toc-list { list-style: none; padding: 0; margin: 0; border-left: 1px solid var(--border); }
+        .toc-list li { margin: 0; }
+        .toc-list a {
+            display: block; padding: 7px 14px; font-size: .85rem; color: var(--text-secondary);
+            border-left: 2px solid transparent; margin-left: -1px; line-height: 1.4; transition: all .2s var(--ease);
+        }
+        .toc-list a:hover { color: var(--primary); border-left-color: var(--primary); background: rgba(56,189,248,0.05); }
+        .toc-list a.active { color: var(--primary); border-left-color: var(--primary); background: rgba(56,189,248,0.08); font-weight: 500; }
+        .toc-list a .toc-num { font-family: var(--mono); color: var(--text-muted); margin-right: 8px; font-size: .82em; }
+        .toc-list a.active .toc-num { color: var(--accent); }
+        @media (max-width: 1024px) { .layout { grid-template-columns: 1fr; } .toc-sidebar { display: none; } }
+        .toc-mobile {
+            display: none; position: fixed; top: 64px; left: 0; right: 0; z-index: 99;
+            background: var(--bg-surface); border-bottom: 1px solid var(--border);
+            max-height: 70vh; overflow-y: auto; padding: 16px 24px;
+        }
+        .toc-mobile.open { display: block; }
+        @media (max-width: 860px) { .toc-mobile.show { display: block; } }
+
+        /* ════════════════════════════════════════════════════════════════════
+           HERO
+           ════════════════════════════════════════════════════════════════════ */
+        .hero { padding: 140px 0 80px; position: relative; overflow: hidden; }
+        .hero-grid { display: grid; grid-template-columns: 1.35fr 1fr; gap: 60px; align-items: center; }
+        @media (max-width: 900px) { .hero-grid { grid-template-columns: 1fr; gap: 40px; } }
+        .hero h1 { font-size: clamp(2.4rem, 5.4vw, 4rem); font-weight: 800; line-height: 1.05; margin-bottom: 22px; letter-spacing: -0.03em; }
+        .hero h1 .grad { background: linear-gradient(120deg, var(--primary) 0%, var(--accent) 70%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+        .hero p.lead { font-size: 1.18rem; color: var(--text-secondary); margin-bottom: 30px; max-width: 580px; }
+        .hero-badges { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 36px; }
+        .grade-badge {
+            display: inline-flex; align-items: center; gap: 10px;
+            padding: 8px 16px; border-radius: 999px; font-weight: 600; font-size: .92rem;
+            border: 1px solid; backdrop-filter: blur(6px);
+        }
+        .grade-badge.max { background: rgba(52,211,153,0.12); border-color: rgba(52,211,153,0.4); color: var(--success); }
+        .grade-badge.mid { background: rgba(251,191,36,0.12); border-color: rgba(251,191,36,0.4); color: var(--warning); }
+        .grade-badge .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; box-shadow: 0 0 10px currentColor; }
+
+        .hero-cta { display: flex; flex-wrap: wrap; gap: 14px; }
+        .btn {
+            display: inline-flex; align-items: center; gap: 10px;
+            padding: 13px 24px; border-radius: 11px; font-weight: 600; font-size: .96rem;
+            border: 1px solid; transition: all .25s var(--ease); cursor: pointer;
+        }
+        .btn-primary { background: linear-gradient(135deg, var(--primary), #0ea5e9); border-color: transparent; color: #05121e; box-shadow: 0 8px 26px var(--primary-glow); }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 34px var(--primary-glow); color: #05121e; }
+        .btn-ghost { background: rgba(15,23,42,0.6); border-color: var(--border); color: var(--text-primary); }
+        .btn-ghost:hover { border-color: var(--primary); color: var(--primary); transform: translateY(-2px); }
+
+        /* Hero visual: two stacks */
+        .stacks-vis { position: relative; }
+        .stack-block {
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+            padding: 22px; backdrop-filter: blur(8px);
+        }
+        .stack-block + .stack-block { margin-top: 18px; }
+        .stack-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+        .stack-label .name { font-family: var(--mono); font-weight: 600; color: var(--primary); font-size: .9rem; }
+        .stack-label .meta { font-size: .78rem; color: var(--text-muted); }
+        .bars { display: flex; flex-direction: column-reverse; gap: 5px; }
+        .bar {
+            height: 22px; border-radius: 5px; font-family: var(--mono); font-size: .72rem;
+            display: flex; align-items: center; justify-content: flex-end; padding-right: 8px;
+            color: #06121e; font-weight: 600; transition: transform .4s var(--ease);
+        }
+        .bar.a { background: linear-gradient(90deg, rgba(56,189,248,0.4), var(--primary)); }
+        .bar.b { background: linear-gradient(90deg, rgba(168,85,247,0.4), var(--accent)); }
+        .op-arrow {
+            position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
+            background: var(--bg-elevated); border: 1px solid var(--border-hover);
+            border-radius: 50%; width: 52px; height: 52px; display: grid; place-items: center;
+            color: var(--primary); box-shadow: 0 0 24px var(--primary-glow); z-index: 2;
         }
 
-        /* Moving caustic rays */
-        .ray-container {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none;
-            z-index: -1;
-            overflow: hidden;
-            opacity: 0.4;
+        /* ════════════════════════════════════════════════════════════════════
+           STAT COUNTERS
+           ════════════════════════════════════════════════════════════════════ */
+        .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-top: 60px; }
+        @media (max-width: 820px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
+        .stat-card {
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+            padding: 26px 22px; text-align: left; transition: all .3s var(--ease); position: relative; overflow: hidden;
         }
+        .stat-card::after { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, var(--primary-glow), transparent 60%); opacity: 0; transition: opacity .3s; }
+        .stat-card:hover { border-color: var(--border-hover); transform: translateY(-3px); }
+        .stat-card:hover::after { opacity: 1; }
+        .stat-card .stat-icon { font-size: 1.3rem; color: var(--primary); margin-bottom: 12px; position: relative; z-index: 1; }
+        .stat-card .stat-val { font-family: var(--mono); font-size: 2.2rem; font-weight: 700; color: #fff; line-height: 1; position: relative; z-index: 1; }
+        .stat-card .stat-val .unit { font-size: 1rem; color: var(--text-muted); font-weight: 500; margin-left: 4px; }
+        .stat-card .stat-label { color: var(--text-secondary); font-size: .85rem; margin-top: 8px; position: relative; z-index: 1; }
 
-        .ray {
-            position: absolute;
-            top: -20%;
-            width: 30vw;
-            height: 140%;
-            background: linear-gradient(180deg, rgba(56, 189, 248, 0.03) 0%, rgba(168, 85, 247, 0.02) 50%, transparent 100%);
-            transform: rotate(-15deg);
-            filter: blur(40px);
-            animation: drift 25s ease-in-out infinite;
-        }
-        .ray-1 { left: 10%; }
-        .ray-2 { left: 60%; animation-delay: -10s; }
-
-        /* ══ Main Page Container & Sidebar Layout ══ */
-        .app-container {
-            display: flex;
-            max-width: 1400px;
-            margin: 0 auto;
-            position: relative;
-        }
-
-        /* Sidebar Navigation */
-        aside {
-            width: 300px;
-            position: sticky;
-            top: 0;
-            height: 100vh;
-            padding: 2.5rem 2rem 2.5rem 0;
-            border-right: 1px solid var(--border-color);
-            overflow-y: auto;
-            flex-shrink: 0;
-        }
-
-        aside::-webkit-scrollbar {
-            width: 4px;
-        }
-
-        .logo-area {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            margin-bottom: 2.5rem;
-            padding-left: 1rem;
-        }
-
-        .logo-area i {
-            font-size: 1.75rem;
-            color: var(--primary);
-            text-shadow: 0 0 15px var(--primary-glow);
-        }
-
-        .logo-area span {
-            font-weight: 700;
-            font-size: 1.25rem;
-            letter-spacing: -0.5px;
-            background: linear-gradient(to right, var(--text-primary), var(--primary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .toc-menu {
-            list-style: none;
-        }
-
-        .toc-item {
-            margin-bottom: 0.25rem;
-        }
-
-        .toc-link {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.75rem 1rem;
-            color: var(--text-secondary);
-            text-decoration: none;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            font-weight: 500;
-            transition: var(--transition-smooth);
-        }
-
-        .toc-link:hover {
-            color: var(--primary);
-            background: rgba(56, 189, 248, 0.06);
-            padding-left: 1.25rem;
-        }
-
-        .toc-link.active {
-            color: var(--primary);
-            background: rgba(56, 189, 248, 0.1);
-            border-left: 3px solid var(--primary);
-            border-radius: 0 8px 8px 0;
-            padding-left: 1.25rem;
-        }
-
-        /* Main Content Panel */
-        main {
-            flex-grow: 1;
-            padding: 3rem 4rem;
-            max-width: 950px;
-        }
-
-        /* ══ Header Styles ══ */
-        header {
-            margin-bottom: 3.5rem;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 2rem;
-        }
-
-        .project-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            background: rgba(56, 189, 248, 0.1);
-            border: 1px solid rgba(56, 189, 248, 0.2);
-            color: var(--primary);
-            padding: 0.4rem 0.8rem;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-        }
-
-        header h1 {
-            font-size: 2.75rem;
-            font-weight: 700;
-            letter-spacing: -1px;
-            margin-bottom: 0.75rem;
-            background: linear-gradient(135deg, var(--text-primary) 30%, var(--primary) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        header .lead {
-            font-size: 1.15rem;
-            color: var(--text-secondary);
-            font-weight: 300;
-        }
-
-        /* ══ Typography & Structural Elements ══ */
-        section {
-            margin-bottom: 4rem;
-            scroll-margin-top: 3rem;
-        }
-
-        h2 {
-            font-size: 1.8rem;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        h2 i {
-            color: var(--primary);
-            font-size: 1.5rem;
-        }
-
-        h3 {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: var(--primary);
-            margin: 2rem 0 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        p {
-            color: var(--text-secondary);
-            margin-bottom: 1.25rem;
-            font-size: 1rem;
-            line-height: 1.7;
-        }
-
-        a.text-link {
-            color: var(--primary);
-            text-decoration: none;
-            border-bottom: 1px dashed var(--primary);
-            transition: var(--transition-smooth);
-        }
-
-        a.text-link:hover {
-            color: var(--text-primary);
-            border-bottom-style: solid;
-        }
-
-        /* Styled Cards */
+        /* ════════════════════════════════════════════════════════════════════
+           CARDS
+           ════════════════════════════════════════════════════════════════════ */
         .card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 1.75rem;
-            margin: 1.5rem 0;
-            backdrop-filter: blur(12px);
-            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
-            transition: var(--transition-smooth);
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+            padding: 28px; transition: all .3s var(--ease); position: relative; overflow: hidden;
         }
+        .card:hover { border-color: var(--border-hover); box-shadow: 0 12px 40px rgba(0,0,0,0.4); }
+        .card-grid { display: grid; gap: 20px; }
+        .card-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+        .card-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+        .card-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+        @media (max-width: 860px) { .card-grid.cols-2, .card-grid.cols-3, .card-grid.cols-4 { grid-template-columns: 1fr; } }
 
-        .card:hover {
-            border-color: var(--border-hover);
-            transform: translateY(-2px);
-            box-shadow: 0 15px 35px -12px rgba(56, 189, 248, 0.15);
+        .card h4 { margin-top: 0; }
+        .card .card-icon { width: 44px; height: 44px; border-radius: 10px; display: grid; place-items: center; font-size: 1.2rem; margin-bottom: 16px; }
+        .card .card-icon.cyan { background: var(--primary-glow); color: var(--primary); }
+        .card .card-icon.violet { background: var(--accent-glow); color: var(--accent); }
+        .card .card-icon.amber { background: rgba(251,191,36,0.14); color: var(--warning); }
+        .card .card-icon.green { background: rgba(52,211,153,0.14); color: var(--success); }
+        .card .card-icon.red { background: rgba(248,113,113,0.14); color: var(--danger); }
+
+        /* ════════════════════════════════════════════════════════════════════
+           CODE BLOCKS
+           ════════════════════════════════════════════════════════════════════ */
+        .code-block { position: relative; margin: 24px 0 30px; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); background: var(--bg-code); }
+        .code-block .code-head {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 16px; background: #070b16; border-bottom: 1px solid var(--border);
         }
+        .code-head .code-file { font-family: var(--mono); font-size: .8rem; color: var(--text-secondary); display: flex; align-items: center; gap: 9px; }
+        .code-head .code-file i { color: var(--accent); }
+        .code-head .dots { display: flex; gap: 6px; }
+        .code-head .dots span { width: 11px; height: 11px; border-radius: 50%; }
+        .code-head .dots .r { background: #f87171; } .code-head .dots .y { background: #fbbf24; } .code-head .dots .g { background: #34d399; }
+        .code-block pre { margin: 0; padding: 20px 22px; overflow-x: auto; font-family: var(--mono); font-size: .86rem; line-height: 1.65; }
+        .code-block pre code { color: #c9d4e5; background: none; border: none; padding: 0; font-size: inherit; }
 
-        /* Callouts / Alerts */
-        .callout {
-            padding: 1.25rem 1.5rem;
-            border-radius: 8px;
-            margin: 1.5rem 0;
-            display: flex;
-            gap: 1rem;
-            font-size: 0.95rem;
-            box-shadow: 0 4px 20px -5px rgba(0,0,0,0.3);
+        /* Syntax token colors */
+        .tok-kw   { color: #c084fc; }       /* keywords: if, while, return */
+        .tok-type { color: #38bdf8; }       /* types: int, void, t_pile */
+        .tok-fn   { color: #fbbf24; }       /* function names */
+        .tok-str  { color: #34d399; }       /* strings */
+        .tok-num  { color: #f472b6; }       /* numbers */
+        .tok-com  { color: #5b6b86; font-style: italic; } /* comments */
+        .tok-mac  { color: #67e8f9; }       /* macros / preprocessor */
+        .tok-op   { color: #94a3b8; }
+        .tok-id   { color: #c9d4e5; }
+        .tok-ln   { color: #3b4a63; user-select: none; display: inline-block; width: 2.6em; text-align: right; margin-right: 1.4em; }
+
+        /* Inline code caption */
+        .code-caption { font-size: .85rem; color: var(--text-muted); margin: -18px 0 26px; font-style: italic; padding-left: 8px; }
+        .code-caption .fname { font-family: var(--mono); color: var(--accent); }
+
+        /* ════════════════════════════════════════════════════════════════════
+           TABLES
+           ════════════════════════════════════════════════════════════════════ */
+        .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); margin: 24px 0; }
+        table { width: 100%; border-collapse: collapse; font-size: .92rem; min-width: 560px; }
+        thead { background: rgba(56,189,248,0.06); }
+        th { text-align: left; padding: 14px 18px; font-weight: 600; color: var(--primary); border-bottom: 1px solid var(--border); font-size: .82rem; letter-spacing: .04em; text-transform: uppercase; }
+        td { padding: 13px 18px; border-bottom: 1px solid var(--border-soft); color: #cbd5e1; vertical-align: middle; }
+        tbody tr { transition: background .2s var(--ease); }
+        tbody tr:hover { background: rgba(56,189,248,0.04); }
+        tbody tr:last-child td { border-bottom: none; }
+        td.num, th.num { text-align: right; font-family: var(--mono); }
+        td .delta { font-family: var(--mono); font-weight: 600; }
+        td .delta.up { color: var(--success); } td .delta.down { color: var(--danger); }
+        td .delta.same { color: var(--text-muted); }
+
+        /* ════════════════════════════════════════════════════════════════════
+           BADGES
+           ════════════════════════════════════════════════════════════════════ */
+        .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: .76rem; font-weight: 600; font-family: var(--mono); border: 1px solid; }
+        .pill.max { background: rgba(52,211,153,0.12); border-color: rgba(52,211,153,0.4); color: var(--success); }
+        .pill.mid { background: rgba(251,191,36,0.12); border-color: rgba(251,191,36,0.4); color: var(--warning); }
+        .pill.low { background: rgba(248,113,113,0.12); border-color: rgba(248,113,113,0.4); color: var(--danger); }
+        .pill.info { background: rgba(56,189,248,0.12); border-color: rgba(56,189,248,0.4); color: var(--primary); }
+        .pill.pass { background: rgba(52,211,153,0.12); border-color: rgba(52,211,153,0.4); color: var(--success); }
+        .pill.fail { background: rgba(248,113,113,0.12); border-color: rgba(248,113,113,0.4); color: var(--danger); }
+
+        /* ════════════════════════════════════════════════════════════════════
+           CALLOUTS
+           ════════════════════════════════════════════════════════════════════ */
+        .callout { border-left: 3px solid; padding: 18px 22px; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; margin: 26px 0; background: var(--bg-card); }
+        .callout .c-title { display: flex; align-items: center; gap: 10px; font-weight: 600; margin-bottom: 8px; }
+        .callout p:last-child { margin-bottom: 0; }
+        .callout.tip { border-color: var(--primary); background: linear-gradient(90deg, rgba(56,189,248,0.08), var(--bg-card) 40%); }
+        .callout.tip .c-title { color: var(--primary); }
+        .callout.warn { border-color: var(--warning); background: linear-gradient(90deg, rgba(251,191,36,0.08), var(--bg-card) 40%); }
+        .callout.warn .c-title { color: var(--warning); }
+        .callout.danger { border-color: var(--danger); background: linear-gradient(90deg, rgba(248,113,113,0.08), var(--bg-card) 40%); }
+        .callout.danger .c-title { color: var(--danger); }
+        .callout.key { border-color: var(--accent); background: linear-gradient(90deg, rgba(168,85,247,0.10), var(--bg-card) 45%); }
+        .callout.key .c-title { color: var(--accent); }
+
+        /* ════════════════════════════════════════════════════════════════════
+           OPERATIONS GRID
+           ════════════════════════════════════════════════════════════════════ */
+        .op-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin: 26px 0; }
+        .op-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 18px; transition: all .25s var(--ease); }
+        .op-card:hover { border-color: var(--border-hover); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+        .op-card .op-name { font-family: var(--mono); font-weight: 600; color: var(--primary); font-size: 1.05rem; margin-bottom: 4px; }
+        .op-card .op-name.alt { color: var(--accent); }
+        .op-card .op-desc { font-size: .84rem; color: var(--text-secondary); line-height: 1.5; }
+        .op-card .op-tag { display: inline-block; font-family: var(--mono); font-size: .68rem; color: var(--text-muted); margin-top: 8px; padding: 2px 8px; border: 1px solid var(--border); border-radius: 4px; }
+
+        /* ════════════════════════════════════════════════════════════════════
+           STACK DIAGRAMS (CSS)
+           ════════════════════════════════════════════════════════════════════ */
+        .diag { display: flex; gap: 50px; justify-content: center; align-items: flex-start; flex-wrap: wrap; margin: 28px 0; }
+        .stack-col { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+        .stack-col .col-title { font-family: var(--mono); font-size: .85rem; color: var(--text-muted); margin-bottom: 6px; letter-spacing: .08em; }
+        .cell {
+            width: 78px; height: 38px; border-radius: 6px; display: grid; place-items: center;
+            font-family: var(--mono); font-weight: 600; font-size: .92rem; color: #fff;
+            position: relative; border: 1px solid;
         }
+        .cell.a { background: rgba(56,189,248,0.16); border-color: rgba(56,189,248,0.5); color: var(--primary); }
+        .cell.b { background: rgba(168,85,247,0.16); border-color: rgba(168,85,247,0.5); color: var(--accent); }
+        .cell.target { background: var(--primary); color: #05121e; box-shadow: 0 0 16px var(--primary-glow); }
+        .cell.candidate { background: var(--accent); color: #1a0a2e; box-shadow: 0 0 16px var(--accent-glow); }
+        .cell .marker { position: absolute; left: -54px; top: 50%; transform: translateY(-50%); font-family: var(--mono); font-size: .68rem; color: var(--text-muted); white-space: nowrap; }
+        .top-arrow { font-family: var(--mono); font-size: .72rem; color: var(--text-muted); margin-bottom: 2px; }
+        .diag-caption { text-align: center; font-size: .85rem; color: var(--text-muted); margin-top: 10px; font-style: italic; }
 
-        .callout i {
-            font-size: 1.25rem;
-            margin-top: 0.15rem;
-            flex-shrink: 0;
-        }
+        .strategy-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; margin: 26px 0; }
+        @media (max-width: 760px) { .strategy-grid { grid-template-columns: 1fr; } }
+        .strategy-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; transition: all .3s var(--ease); }
+        .strategy-card:hover { border-color: var(--border-hover); transform: translateY(-3px); }
+        .strategy-card .st-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+        .strategy-card .st-name { font-family: var(--mono); font-weight: 600; font-size: 1.1rem; }
+        .strategy-card .st-name.rr { color: var(--success); } .strategy-card .st-name.rrr { color: var(--warning); }
+        .strategy-card .st-name.mix1 { color: var(--primary); } .strategy-card .st-name.mix2 { color: var(--accent); }
+        .strategy-card .st-cost { font-family: var(--mono); font-size: .82rem; color: var(--text-secondary); background: rgba(255,255,255,0.04); padding: 4px 10px; border-radius: 6px; }
+        .strategy-card .st-body { font-size: .9rem; color: var(--text-secondary); margin-bottom: 14px; }
+        .strategy-card .mini-stacks { display: flex; gap: 30px; justify-content: center; }
+        .strategy-card .mini-stack { display: flex; flex-direction: column-reverse; gap: 4px; }
+        .strategy-card .mini-stack .mcell { width: 60px; height: 26px; border-radius: 4px; display: grid; place-items: center; font-family: var(--mono); font-size: .74rem; font-weight: 600; }
+        .strategy-card .mini-stack .mcell.a { background: rgba(56,189,248,0.18); color: var(--primary); border: 1px solid rgba(56,189,248,0.4); }
+        .strategy-card .mini-stack .mcell.b { background: rgba(168,85,247,0.18); color: var(--accent); border: 1px solid rgba(168,85,247,0.4); }
+        .strategy-card .mini-stack .mcell.hl-a { background: var(--primary); color: #05121e; }
+        .strategy-card .mini-stack .mcell.hl-b { background: var(--accent); color: #1a0a2e; }
+        .strategy-card .mini-label { text-align: center; font-family: var(--mono); font-size: .68rem; color: var(--text-muted); margin-top: 6px; }
 
-        .callout-info {
-            background: rgba(56, 189, 248, 0.08);
-            border-left: 4px solid var(--primary);
-            color: #e2f1ff;
-        }
-        .callout-info i { color: var(--primary); }
+        /* ════════════════════════════════════════════════════════════════════
+           BAR CHART (CSS comparison)
+           ════════════════════════════════════════════════════════════════════ */
+        .chart { margin: 30px 0; }
+        .chart-row { display: grid; grid-template-columns: 90px 1fr 90px; gap: 16px; align-items: center; margin-bottom: 16px; }
+        .chart-row .ch-label { font-family: var(--mono); font-size: .85rem; color: var(--text-secondary); text-align: right; }
+        .chart-row .ch-track { position: relative; height: 30px; background: rgba(15,23,42,0.6); border-radius: 6px; border: 1px solid var(--border); overflow: hidden; }
+        .chart-row .ch-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 6px 0 0 6px; display: flex; align-items: center; padding-left: 10px; font-family: var(--mono); font-size: .76rem; font-weight: 600; color: #05121e; white-space: nowrap; transition: width 1.2s var(--ease); width: 0; }
+        .chart-row .ch-fill.old { background: linear-gradient(90deg, rgba(248,113,113,0.7), var(--warning)); color: #1a1206; }
+        .chart-row .ch-fill.new { background: linear-gradient(90deg, rgba(56,189,248,0.7), var(--primary)); }
+        .chart-row .ch-thresh { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--success); z-index: 2; }
+        .chart-row .ch-thresh::after { content: attr(data-label); position: absolute; top: -18px; left: 50%; transform: translateX(-50%); font-family: var(--mono); font-size: .62rem; color: var(--success); white-space: nowrap; }
+        .chart-row .ch-val { font-family: var(--mono); font-size: .85rem; color: #fff; font-weight: 600; }
+        .chart-legend { display: flex; gap: 22px; justify-content: center; margin-top: 22px; flex-wrap: wrap; }
+        .chart-legend .leg { display: flex; align-items: center; gap: 8px; font-size: .85rem; color: var(--text-secondary); }
+        .chart-legend .swatch { width: 14px; height: 14px; border-radius: 4px; }
+        .chart-legend .swatch.old { background: var(--warning); }
+        .chart-legend .swatch.new { background: var(--primary); }
+        .chart-legend .swatch.thresh { background: var(--success); }
 
-        .callout-warning {
-            background: rgba(251, 191, 36, 0.06);
-            border-left: 4px solid var(--warning);
-            color: #fffbeb;
-        }
-        .callout-warning i { color: var(--warning); }
+        /* ════════════════════════════════════════════════════════════════════
+           TIMELINE / FLOW
+           ════════════════════════════════════════════════════════════════════ */
+        .flow { display: flex; flex-direction: column; gap: 0; margin: 28px 0; }
+        .flow-step { display: grid; grid-template-columns: 56px 1fr; gap: 18px; padding-bottom: 26px; position: relative; }
+        .flow-step:not(:last-child)::before { content: ''; position: absolute; left: 27px; top: 50px; bottom: 0; width: 2px; background: linear-gradient(var(--border), transparent); }
+        .flow-num { width: 56px; height: 56px; border-radius: 14px; background: linear-gradient(135deg, var(--primary), var(--accent)); display: grid; place-items: center; font-family: var(--mono); font-weight: 700; font-size: 1.2rem; color: #060913; box-shadow: 0 6px 20px var(--primary-glow); position: relative; z-index: 1; }
+        .flow-body { padding-top: 6px; }
+        .flow-body h4 { margin: 0 0 6px; color: #fff; }
+        .flow-body p { margin-bottom: 8px; font-size: .94rem; }
 
-        .callout-danger {
-            background: rgba(248, 113, 113, 0.06);
-            border-left: 4px solid var(--danger);
-            color: #fef2f2;
-        }
-        .callout-danger i { color: var(--danger); }
+        /* ════════════════════════════════════════════════════════════════════
+           CORRECTION SHEET
+           ════════════════════════════════════════════════════════════════════ */
+        .corr-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin: 26px 0; }
+        @media (max-width: 760px) { .corr-grid { grid-template-columns: 1fr; } }
+        .corr-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 18px 20px; display: flex; align-items: center; gap: 16px; }
+        .corr-card .corr-icon { width: 42px; height: 42px; border-radius: 10px; display: grid; place-items: center; flex-shrink: 0; font-size: 1.05rem; }
+        .corr-card .corr-icon.ok { background: rgba(52,211,153,0.14); color: var(--success); }
+        .corr-card .corr-icon.bad { background: rgba(248,113,113,0.14); color: var(--danger); }
+        .corr-card .corr-text { flex: 1; }
+        .corr-card .corr-text .ct-title { font-weight: 600; font-size: .96rem; color: #fff; }
+        .corr-card .corr-text .ct-sub { font-size: .82rem; color: var(--text-muted); font-family: var(--mono); }
 
-        /* Code Blocks styling */
-        pre {
-            background: #050811;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 1.25rem;
-            overflow-x: auto;
-            margin: 1.5rem 0;
-            position: relative;
-        }
+        /* ════════════════════════════════════════════════════════════════════
+           FOOTER
+           ════════════════════════════════════════════════════════════════════ */
+        footer { border-top: 1px solid var(--border); padding: 56px 0 36px; background: linear-gradient(180deg, transparent, rgba(15,23,42,0.4)); position: relative; z-index: 1; }
+        .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 40px; margin-bottom: 36px; }
+        @media (max-width: 760px) { .footer-grid { grid-template-columns: 1fr; gap: 28px; } }
+        .footer-grid h5 { font-size: .82rem; text-transform: uppercase; letter-spacing: .1em; color: var(--text-muted); margin-bottom: 14px; font-family: var(--mono); }
+        .footer-grid ul { list-style: none; padding: 0; }
+        .footer-grid ul li { margin-bottom: 8px; }
+        .footer-grid ul a { color: var(--text-secondary); font-size: .9rem; }
+        .footer-grid ul a:hover { color: var(--primary); }
+        .footer-bottom { display: flex; justify-content: space-between; align-items: center; padding-top: 22px; border-top: 1px solid var(--border-soft); font-size: .82rem; color: var(--text-muted); flex-wrap: wrap; gap: 12px; }
 
-        code {
-            font-family: var(--mono-font);
-            font-size: 0.875rem;
-            color: #e0f2fe;
-            background: rgba(56, 189, 248, 0.08);
-            padding: 0.2rem 0.4rem;
-            border-radius: 4px;
-        }
+        /* Reveal animation */
+        .reveal { opacity: 0; transform: translateY(24px); transition: opacity .7s var(--ease), transform .7s var(--ease); }
+        .reveal.visible { opacity: 1; transform: translateY(0); }
 
-        pre code {
-            background: transparent;
-            padding: 0;
-            color: inherit;
-        }
-
-        .copy-btn {
-            position: absolute;
-            top: 0.75rem;
-            right: 0.75rem;
-            background: rgba(30, 41, 59, 0.7);
-            border: 1px solid var(--border-color);
-            color: var(--text-secondary);
-            padding: 0.4rem 0.6rem;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.8rem;
-            transition: var(--transition-smooth);
-        }
-
-        .copy-btn:hover {
-            background: var(--primary);
-            color: var(--bg-base);
-            border-color: var(--primary);
-        }
-
-        /* ══ Strategy Cards Visualizer ══ */
-        .strategy-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.25rem;
-            margin: 1.5rem 0;
-        }
-
-        .strategy-card {
-            background: rgba(15, 23, 42, 0.4);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            padding: 1.25rem;
-            text-align: center;
-            transition: var(--transition-smooth);
-        }
-
-        .strategy-card:hover {
-            border-color: var(--border-hover);
-            background: rgba(15, 23, 42, 0.7);
-        }
-
-        .strategy-card .icon-circle {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            background: rgba(56, 189, 248, 0.1);
-            color: var(--primary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 1rem;
-            font-size: 1.25rem;
-        }
-
-        .strategy-card h4 {
-            font-size: 0.95rem;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 0.5rem;
-        }
-
-        .strategy-card p {
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-            margin-bottom: 0;
-        }
-
-        /* Lists */
-        ul.styled-list, ol.styled-list {
-            margin: 1rem 0 1.5rem 1.5rem;
-            color: var(--text-secondary);
-        }
-
-        ul.styled-list li {
-            margin-bottom: 0.5rem;
-            position: relative;
-            padding-left: 0.5rem;
-        }
-
-        /* Tables for Benchmarks */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 1.5rem 0;
-            font-size: 0.9rem;
-            text-align: left;
-        }
-
-        th {
-            background: rgba(30, 41, 59, 0.4);
-            color: var(--text-primary);
-            font-weight: 600;
-            padding: 0.75rem 1rem;
-            border-bottom: 2px solid var(--border-color);
-        }
-
-        td {
-            padding: 0.75rem 1rem;
-            border-bottom: 1px solid var(--border-color);
-            color: var(--text-secondary);
-        }
-
-        tr:hover td {
-            background: rgba(30, 41, 59, 0.15);
-            color: var(--text-primary);
-        }
-
-        .text-green { color: var(--success); font-weight: 600; }
-        .text-purple { color: var(--accent); font-weight: 600; }
-
-        /* Code Highlighting classes (Simulated) */
-        .comment { color: #64748b; font-style: italic; }
-        .keyword { color: #f472b6; font-weight: 500; }
-        .function { color: #38bdf8; }
-        .type { color: #c084fc; }
-        .string { color: #34d399; }
-        .number { color: #fbbf24; }
-
-        /* Responsive Design */
-        @media (max-width: 1024px) {
-            aside {
-                display: none;
-            }
-            main {
-                padding: 2rem;
-            }
+        @media (prefers-reduced-motion: reduce) {
+            * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+            .reveal { opacity: 1; transform: none; }
         }
     </style>
 </head>
 <body>
 
-    <!-- Caustics backdrop -->
-    <div class="ray-container">
-        <div class="ray ray-1"></div>
-        <div class="ray ray-2"></div>
+    <!-- ════════ TOP NAV ════════ -->
+    <header class="topbar" id="topbar">
+        <div class="topbar-inner wrap">
+            <a href="#top" class="brand">
+                <span class="logo">ps</span>
+                <span>push_swap <small>reference guide</small></span>
+            </a>
+            <nav class="nav-actions">
+                <a href="#comparison" class="github-link"><i class="fa-solid fa-chart-column"></i><span>Benchmarks</span></a>
+                <a href="#build" class="github-link"><i class="fa-solid fa-terminal"></i><span>Build &amp; Test</span></a>
+                <button class="toc-toggle" id="tocToggle" aria-label="Toggle contents"><i class="fa-solid fa-list"></i></button>
+            </nav>
+        </div>
+    </header>
+    <div class="toc-mobile" id="tocMobile">
+        <ul class="toc-list" style="border-left:none"></ul>
     </div>
 
-    <div class="app-container">
-        <!-- Sidebar Navigation -->
-        <aside>
-            <div class="logo-area">
-                <i class="fa-solid fa-layer-group"></i>
-                <span>push_swap guide</span>
+    <!-- ════════ HERO ════════ -->
+    <div id="top"></div>
+    <section class="hero" style="border-top:none;">
+        <div class="wrap">
+            <div class="hero-grid">
+                <div>
+                    <span class="eyebrow"><i class="fa-solid fa-graduation-cap"></i> École 42 · Algorithm Project</span>
+                    <h1>Sort smarter, not harder:<br><span class="grad">push_swap, fully explained.</span></h1>
+                    <p class="lead">A complete, pedagogical walkthrough of the push_swap project — from a quicksort baseline that scored <strong style="color:var(--warning)">4/5</strong> to a <em>cost-based insertion sort</em> that reliably hits the maximum <strong style="color:var(--success)">5/5</strong> on both the 100- and 500-number benchmarks. Real C code, visual diagrams, and the bug that almost failed the correction.</p>
+                    <div class="hero-badges">
+                        <span class="grade-badge max"><span class="dot"></span> 100 numbers · 5/5</span>
+                        <span class="grade-badge max"><span class="dot"></span> 500 numbers · 5/5</span>
+                        <span class="grade-badge mid"><span class="dot"></span> previously 4/5</span>
+                    </div>
+                    <div class="hero-cta">
+                        <a href="#rules" class="btn btn-primary"><i class="fa-solid fa-play"></i> Start reading</a>
+                        <a href="#comparison" class="btn btn-ghost"><i class="fa-solid fa-arrow-trend-down"></i> Jump to benchmarks</a>
+                    </div>
+                </div>
+                <div class="stacks-vis">
+                    <div class="stack-block">
+                        <div class="stack-label">
+                            <span class="name"><i class="fa-solid fa-layer-group"></i> stack A</span>
+                            <span class="meta">sorted, rotated</span>
+                        </div>
+                        <div class="bars">
+                            <div class="bar a" style="width:38%">3</div>
+                            <div class="bar a" style="width:62%">7</div>
+                            <div class="bar a" style="width:48%">4</div>
+                            <div class="bar a" style="width:90%">9</div>
+                            <div class="bar a" style="width:72%">8</div>
+                        </div>
+                    </div>
+                    <div class="op-arrow" title="pa"><i class="fa-solid fa-arrow-down"></i></div>
+                    <div class="stack-block">
+                        <div class="stack-label">
+                            <span class="name" style="color:var(--accent)"><i class="fa-solid fa-layer-group"></i> stack B</span>
+                            <span class="meta">unsorted pool</span>
+                        </div>
+                        <div class="bars">
+                            <div class="bar b" style="width:55%">5</div>
+                            <div class="bar b" style="width:30%">2</div>
+                            <div class="bar b" style="width:80%">6</div>
+                            <div class="bar b" style="width:18%">1</div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <nav>
-                <ul class="toc-menu">
-                    <li class="toc-item"><a href="#intro" class="toc-link active"><i class="fa-solid fa-circle-info"></i> Introduction</a></li>
-                    <li class="toc-item"><a href="#algo" class="toc-link"><i class="fa-solid fa-gears"></i> L'Algorithme (Coût)</a></li>
-                    <li class="toc-item"><a href="#strategies" class="toc-link"><i class="fa-solid fa-shuffle"></i> 4 Stratégies de Rotation</a></li>
-                    <li class="toc-item"><a href="#perf" class="toc-link"><i class="fa-solid fa-chart-line"></i> Complexité & Benchmarks</a></li>
-                    <li class="toc-item"><a href="#cicd" class="toc-link"><i class="fa-solid fa-network-wired"></i> CI/CD GitHub Actions</a></li>
-                    <li class="toc-item"><a href="#deploy" class="toc-link"><i class="fa-solid fa-cloud-arrow-up"></i> Déploiement CI/CD</a></li>
-                </ul>
-            </nav>
+
+            <!-- Stat counters -->
+            <div class="stats-row">
+                <div class="stat-card reveal">
+                    <div class="stat-icon"><i class="fa-solid fa-bolt"></i></div>
+                    <div class="stat-val" data-target="559">0<span class="unit">ops</span></div>
+                    <div class="stat-label">avg. for 100 numbers</div>
+                </div>
+                <div class="stat-card reveal">
+                    <div class="stat-icon" style="color:var(--accent)"><i class="fa-solid fa-gauge-high"></i></div>
+                    <div class="stat-val" data-target="5281">0<span class="unit">ops</span></div>
+                    <div class="stat-label">avg. for 500 numbers</div>
+                </div>
+                <div class="stat-card reveal">
+                    <div class="stat-icon" style="color:var(--success)"><i class="fa-solid fa-arrow-trend-down"></i></div>
+                    <div class="stat-val" data-target="37">0<span class="unit">%</span></div>
+                    <div class="stat-label">ops saved on 100 numbers</div>
+                </div>
+                <div class="stat-card reveal">
+                    <div class="stat-icon" style="color:var(--warning)"><i class="fa-solid fa-star"></i></div>
+                    <div class="stat-val" data-target="5">0<span class="unit">/5</span></div>
+                    <div class="stat-label">final grade, both benchmarks</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ════════ MAIN LAYOUT WITH TOC ════════ -->
+    <div class="layout">
+        <!-- Sticky TOC -->
+        <aside class="toc-sidebar">
+            <h5>Contents</h5>
+            <ul class="toc-list" id="tocList">
+                <li><a href="#rules"><span class="toc-num">01</span>Rules of the game</a></li>
+                <li><a href="#grading"><span class="toc-num">02</span>Grading scale</a></li>
+                <li><a href="#old-algo"><span class="toc-num">03</span>Old: Quicksort</a></li>
+                <li><a href="#new-algo"><span class="toc-num">04</span>New: Cost-based sort</a></li>
+                <li><a href="#strategies"><span class="toc-num">05</span>The 4 rotation strategies</a></li>
+                <li><a href="#find-pos"><span class="toc-num">06</span>find_insert_pos</a></li>
+                <li><a href="#comparison"><span class="toc-num">07</span>Side-by-side comparison</a></li>
+                <li><a href="#checker"><span class="toc-num">08</span>Checker &amp; the empty-line bug</a></li>
+                <li><a href="#correction"><span class="toc-num">09</span>Correction sheet</a></li>
+                <li><a href="#build"><span class="toc-num">10</span>Build &amp; test</a></li>
+            </ul>
         </aside>
 
-        <!-- Main Content -->
+        <!-- Main column -->
         <main>
-            <header>
-                <div class="project-badge">
-                    <i class="fa-solid fa-graduation-cap"></i> Modèle Académique Référence 42
-                </div>
-                <h1>push_swap : Le Guide Ultime</h1>
-                <div class="lead">
-                    Analyse détaillée de l'Algorithme d'Insertion par Coût (5/5 aux Benchmarks) et déploiement de sa CI/CD robuste avec GitHub Actions.
-                </div>
-            </header>
 
-            <!-- SECTION 1: INTRODUCTION -->
-            <section id="intro">
-                <h2><i class="fa-solid fa-circle-info"></i> 1. Introduction au Projet</h2>
-                <p>
-                    Le projet <code>push_swap</code> est une épreuve algorithmique classique de l'école 42. Vous disposez de deux piles (Stack A et Stack B) et d'un jeu restreint d'opérations pour trier la pile A dans l'ordre croissant, en un minimum d'opérations.
-                </p>
-                <div class="callout callout-info">
-                    <i class="fa-solid fa-circle-exclamation"></i>
-                    <div>
-                        <strong>Objectif de performance :</strong> Pour obtenir le score maximum de 5/5, le nombre d'opérations doit être inférieur à <strong>700</strong> pour 100 nombres, et inférieur à <strong>5500</strong> pour 500 nombres.
-                    </div>
-                </div>
-                <h3>Les Opérations Autorisées</h3>
-                <p>
-                    Vous disposez de 11 instructions basiques :
-                </p>
-                <ul class="styled-list">
-                    <li><strong>sa, sb, ss</strong> : Échanger les deux premiers éléments au sommet de la pile A / B / des deux en même temps.</li>
-                    <li><strong>pa, pb</strong> : Pousser le premier élément du sommet de B vers A, ou de A vers B.</li>
-                    <li><strong>ra, rb, rr</strong> : Décaler tous les éléments vers le haut (le premier devient le dernier).</li>
-                    <li><strong>rra, rrb, rrr</strong> : Décaler tous les éléments vers le bas (le dernier devient le premier).</li>
-                </ul>
-            </section>
+    <!-- ════════ SECTION 1: RULES ════════ -->
+    <section id="rules">
+        <span class="eyebrow"><i class="fa-solid fa-book"></i> Section 01</span>
+        <h2 class="section-title"><span class="num">01</span>Rules of the game</h2>
+        <p class="section-lead">push_swap gives you two stacks — <code>A</code> and <code>B</code> — and only eleven operations to sort the integers initially placed on <code>A</code>. The challenge is not <em>whether</em> you can sort them, but how <strong>few</strong> operations you can do it in.</p>
 
-            <!-- SECTION 2: ALGORITHME -->
-            <section id="algo">
-                <h2><i class="fa-solid fa-gears"></i> 2. L'Algorithme d'Insertion par Coût</h2>
-                <p>
-                    Plutôt que d'utiliser des algorithmes génériques comme le QuickSort (difficile à calibrer pour respecter les plafonds d'opérations requis par le barème 42) ou le Radix (trop verbeux), nous implémentons un **Tri par Insertion Orienté Coût**. 
-                </p>
-                <p>
-                    Cet algorithme évalue à chaque étape l'état exact des deux piles pour calculer l'opération optimale.
-                </p>
-                <div class="card">
-                    <h3>Fonctionnement Pas-à-Pas</h3>
-                    <ol class="styled-list" style="margin-left: 1.25rem;">
-                        <li><strong>Push initial</strong> : On pousse tous les nombres de A vers B, sauf 3.</li>
-                        <li><strong>Tri de la base</strong> : On trie les 3 nombres restants dans A avec une logique dédiée à 3 éléments (garantissant maximum 2 opérations).</li>
-                        <li><strong>Recherche circulaire</strong> : Pour chaque élément dans B, on trouve où il doit s'insérer de manière ordonnée dans la pile A (pile triée de façon circulaire).</li>
-                        <li><strong>Évaluation des coûts</strong> : On évalue le coût de placement de chaque élément de B. On choisit celui qui requiert le moins d'opérations au total.</li>
-                        <li><strong>Rotations & Push</strong> : On aligne les piles en maximisant les rotations doubles (<code>rr</code>/<code>rrr</code>), puis on effectue le push (<code>pa</code>).</li>
-                        <li><strong>Alignement Final</strong> : Quand B est vide, on fait pivoter A pour placer le minimum global au sommet.</li>
-                    </ol>
-                </div>
+        <h3><span class="h-icon"><i class="fa-solid fa-layer-group"></i></span>The two stacks</h3>
+        <p>Both stacks behave like classic LIFO structures: you can only read, swap, or remove the <strong>top</strong> element. Stack <code>A</code> starts with the unsorted input, stack <code>B</code> starts empty, and the goal is to have <code>A</code> sorted in ascending order (smallest on top) with <code>B</code> empty again.</p>
 
-                <h3>Recherche de Position Circulaire (C)</h3>
-                <p>
-                    La fonction ci-dessous convertit temporairement la pile en tableau circulaire pour localiser l'emplacement cible d'un élément dans la pile A :
-                </p>
-                <div style="position: relative;">
-                    <button class="copy-btn" onclick="copyCode('code-insert-pos')"><i class="fa-regular fa-copy"></i> Copier</button>
-                    <pre><code id="code-insert-pos"><span class="keyword">static int</span>  <span class="function">find_insert_pos</span>(<span class="type">t_pile</span> *pa, <span class="keyword">int</span> val)
+        <div class="diag">
+            <div class="stack-col">
+                <div class="col-title">STACK A (initial)</div>
+                <div class="top-arrow">↑ top</div>
+                <div class="cell a">8</div>
+                <div class="cell a">3</div>
+                <div class="cell a">1</div>
+                <div class="cell a">6</div>
+                <div class="cell a">2</div>
+            </div>
+            <div class="stack-col">
+                <div class="col-title">STACK B (initial)</div>
+                <div class="top-arrow">↑ top</div>
+                <div class="cell b" style="opacity:.3">·</div>
+                <div class="cell b" style="opacity:.2">·</div>
+                <div class="cell b" style="opacity:.15">·</div>
+                <div class="cell b" style="opacity:.1">·</div>
+            </div>
+        </div>
+        <p class="diag-caption">A typical starting state. Everything lives on A; B is an empty workspace you fill during sorting.</p>
+
+        <h3><span class="h-icon"><i class="fa-solid fa-list-ol"></i></span>The eleven operations</h3>
+        <p>These are the only moves you may print to stdout. The 42 checker reads them one per line and replays them on a fresh copy of the stacks. Knowing each operation's cost (1 op each) and effect is essential — every line you print is a line that counts against your grade.</p>
+
+        <div class="op-grid">
+            <div class="op-card">
+                <div class="op-name">sa</div>
+                <div class="op-desc">Swap the first two elements at the top of <strong>A</strong>.</div>
+                <span class="op-tag">stack A</span>
+            </div>
+            <div class="op-card">
+                <div class="op-name">sb</div>
+                <div class="op-desc">Swap the first two elements at the top of <strong>B</strong>.</div>
+                <span class="op-tag">stack B</span>
+            </div>
+            <div class="op-card">
+                <div class="op-name alt">ss</div>
+                <div class="op-desc"><code>sa</code> and <code>sb</code> at the same time — one line, two effects.</div>
+                <span class="op-tag">both</span>
+            </div>
+            <div class="op-card">
+                <div class="op-name">pa</div>
+                <div class="op-desc">Push the top of <strong>B</strong> onto <strong>A</strong>. (B loses one, A gains one.)</div>
+                <span class="op-tag">B → A</span>
+            </div>
+            <div class="op-card">
+                <div class="op-name">pb</div>
+                <div class="op-desc">Push the top of <strong>A</strong> onto <strong>B</strong>. (A loses one, B gains one.)</div>
+                <span class="op-tag">A → B</span>
+            </div>
+            <div class="op-card">
+                <div class="op-name">ra</div>
+                <div class="op-desc">Rotate <strong>A</strong> up: the top element becomes the last. Shifts everything up by one.</div>
+                <span class="op-tag">stack A</span>
+            </div>
+            <div class="op-card">
+                <div class="op-name">rb</div>
+                <div class="op-desc">Rotate <strong>B</strong> up: the top element becomes the last.</div>
+                <span class="op-tag">stack B</span>
+            </div>
+            <div class="op-card">
+                <div class="op-name alt">rr</div>
+                <div class="op-desc"><code>ra</code> and <code>rb</code> simultaneously — <strong>this is the key to our optimization</strong>.</div>
+                <span class="op-tag">both</span>
+            </div>
+            <div class="op-card">
+                <div class="op-name">rra</div>
+                <div class="op-desc">Reverse-rotate <strong>A</strong>: the last element becomes the first. Shifts everything down.</div>
+                <span class="op-tag">stack A</span>
+            </div>
+            <div class="op-card">
+                <div class="op-name">rrb</div>
+                <div class="op-desc">Reverse-rotate <strong>B</strong>: the last element becomes the first.</div>
+                <span class="op-tag">stack B</span>
+            </div>
+            <div class="op-card">
+                <div class="op-name alt">rrr</div>
+                <div class="op-desc"><code>rra</code> and <code>rrb</code> simultaneously — the mirror of <code>rr</code>.</div>
+                <span class="op-tag">both</span>
+            </div>
+        </div>
+
+        <div class="callout tip">
+            <div class="c-title"><i class="fa-solid fa-lightbulb"></i> The power of <code>rr</code> and <code>rrr</code></div>
+            <p>Three operations — <code>ss</code>, <code>rr</code>, <code>rrr</code> — let you do <strong>two things for the price of one</strong>. An algorithm that ignores them wastes up to half of its rotations. Our old quicksort <em>never</em> used them; the new cost sort uses them whenever both stacks must rotate the same way. This single insight is responsible for a large share of the savings you'll see in the benchmarks.</p>
+        </div>
+    </section>
+
+    <!-- ════════ SECTION 2: GRADING ════════ -->
+    <section id="grading">
+        <span class="eyebrow"><i class="fa-solid fa-star-half-stroke"></i> Section 02</span>
+        <h2 class="section-title"><span class="num">02</span>The grading scale</h2>
+        <p class="section-lead">Your grade is determined purely by the <strong>number of operations</strong> your program prints. Fewer is better. The thresholds below are the official 42 scale, and the entire architecture of both algorithms in this guide is built around staying comfortably under them.</p>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr><th>Input size</th><th class="num">5/5 threshold</th><th class="num">4/5 threshold</th><th class="num">3/5 threshold</th><th>Note</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>3 numbers</td><td class="num">≤ 3</td><td class="num">—</td><td class="num">—</td><td>Trivial; hardcoded.</td></tr>
+                    <tr><td>5 numbers</td><td class="num">≤ 12</td><td class="num">—</td><td class="num">—</td><td>Handled by <code>mini_solve</code>.</td></tr>
+                    <tr><td>100 numbers</td><td class="num">&lt; 700</td><td class="num">&lt; 900</td><td class="num">&lt; 1100</td><td><span class="pill max">5/5 target</span></td></tr>
+                    <tr><td>500 numbers</td><td class="num">&lt; 5500</td><td class="num">&lt; 7000</td><td class="num">&lt; 8500</td><td><span class="pill max">5/5 target</span></td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="callout key">
+            <div class="c-title"><i class="fa-solid fa-key"></i> Why 700 and 5500 matter so much</div>
+            <p>Getting under 700 for 100 numbers is relatively forgiving — even a sloppy quicksort manages it. The real fight is the 500-number case, where the 5500 threshold is tight. Algorithms based on naive pivot selection routinely blow past 6000–7000 ops on adversarial inputs. The cost-based approach in this guide averages ~5281, leaving only a ~220-op margin — but it does so <strong>consistently</strong>, with no pathological worst case.</p>
+        </div>
+    </section>
+
+    <!-- ════════ SECTION 3: OLD ALGORITHM ════════ -->
+    <section id="old-algo">
+        <span class="eyebrow"><i class="fa-solid fa-clock-rotate-left"></i> Section 03</span>
+        <h2 class="section-title"><span class="num">03</span>The old algorithm: recursive quicksort</h2>
+        <p class="section-lead">The first version of this project used a textbook recursive quicksort adapted for two stacks. It worked, it was elegant, and it scored <strong style="color:var(--warning)">4/5</strong>. Understanding <em>why</em> it fell short is the best way to appreciate the new algorithm.</p>
+
+        <h3><span class="h-icon"><i class="fa-solid fa-diagram-project"></i></span>The idea</h3>
+        <p>Quicksort on two stacks works like ordinary quicksort, except the "partition" step is implemented by physically moving elements to the other stack. The algorithm picks a median pivot, pushes everything smaller than the pivot to <code>B</code>, rotates the rest of <code>A</code> out of the way, then recurses on both halves.</p>
+
+        <div class="flow">
+            <div class="flow-step">
+                <div class="flow-num">1</div>
+                <div class="flow-body">
+                    <h4>Pick a pivot — the median</h4>
+                    <p><code>median_between()</code> finds the true median of the elements currently in the range <code>[min, max]</code> by recursively partitioning a temporary copy of the stack. This is more expensive than a random pivot but guarantees balanced splits.</p>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-num">2</div>
+                <div class="flow-body">
+                    <h4>Partition with <code>move_pivot()</code></h4>
+                    <p>Walk the source stack. Elements below the pivot go to the other stack via <code>pb</code> (or <code>pa</code> on the way back); elements above the pivot get rotated to the bottom with <code>ra</code>/<code>rb</code> so they can be revisited.</p>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-num">3</div>
+                <div class="flow-body">
+                    <h4>Undo the rotations with <code>quick_return()</code></h4>
+                    <p>Because we rotated some elements to the bottom to get them out of the way, we must rotate them back with <code>rra</code> before the next partition pass. This is pure overhead — moves that don't contribute to the final sort.</p>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-num">4</div>
+                <div class="flow-body">
+                    <h4>Recurse on both halves</h4>
+                    <p><code>solve_it()</code> calls itself on the lower half (elements now on B) and the upper half (elements still on A). The base case: when only 2 elements remain in a range, swap them if needed and push them back to A.</p>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-num">5</div>
+                <div class="flow-body">
+                    <h4>Final alignment with <code>call_alg()</code></h4>
+                    <p>After the recursion finishes, A is sorted <em>circularly</em> — the smallest element is somewhere in the middle. The old code rotates A with <code>ra</code> to bring the minimum to the top. Always <code>ra</code>, never <code>rra</code>, even when <code>rra</code> would be shorter.</p>
+                </div>
+            </div>
+        </div>
+
+        <h3><span class="h-icon"><i class="fa-solid fa-code"></i></span>The partition function: <code>move_pivot()</code></h3>
+        <p>This is the heart of the old algorithm. It scans the source stack, pushes "small" elements to the other stack, and rotates "large" elements to the bottom. The pivot is the median, returned so the caller can recurse on each side.</p>
+
+        <div class="code-block">
+            <div class="code-head">
+                <div class="dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+                <span class="code-file"><i class="fa-solid fa-file-code"></i> src/sort_two.c</span>
+            </div>
+<pre><code><span class="tok-type">int</span>    move_pivot(t_pile **p1, t_pile **p2, <span class="tok-type">int</span> ispa, t_pivot v)
 {
-    <span class="keyword">int</span> len = <span class="function">pile_len</span>(pa);
-    <span class="keyword">int</span> arr[10000];
-    <span class="keyword">int</span> i = 0;
+    <span class="tok-type">int</span>     pivot;
 
-    <span class="keyword">while</span> (pa && i < 10000) {
-        arr[i++] = pa->x;
-        pa = pa->next;
+    pivot = median_between(*p1, v.min, v.max);
+    <span class="tok-kw">while</span> (*p1 &amp;&amp; are_left(*p1, pivot, ispa, v))
+    {
+        <span class="tok-kw">if</span> (ispa)
+        {
+            <span class="tok-kw">if</span> (v.min &lt;= (*p1)-&gt;x &amp;&amp; (*p1)-&gt;x &lt; pivot)
+                pab(p1, p2, <span class="tok-str">"pb\n"</span>, v.op);   <span class="tok-com">/* small → B */</span>
+            <span class="tok-kw">else</span>
+                rab(p1, <span class="tok-str">"ra\n"</span>, v.op);          <span class="tok-com">/* large → bottom of A */</span>
+        }
+        <span class="tok-kw">else</span>
+        {
+            <span class="tok-kw">if</span> ((*p1)-&gt;x &gt;= pivot)
+                pab(p1, p2, <span class="tok-str">"pa\n"</span>, v.op);   <span class="tok-com">/* large → A */</span>
+            <span class="tok-kw">else</span>
+                rab(p1, <span class="tok-str">"rb\n"</span>, v.op);          <span class="tok-com">/* small → bottom of B */</span>
+        }
     }
-    
-    <span class="comment">// Trouve le min et le max circulaires dans A</span>
-    <span class="keyword">int</span> min_pos = 0;
-    <span class="keyword">int</span> max_val = arr[0];
-    <span class="keyword">for</span> (<span class="keyword">int</span> j = 0; j < len; j++) {
-        <span class="keyword">if</span> (arr[j] < arr[min_pos]) min_pos = j;
-        <span class="keyword">if</span> (arr[j] > max_val) max_val = arr[j];
-    }
-
-    <span class="comment">// Cas extrêmes : val devient le nouveau min ou max global</span>
-    <span class="keyword">if</span> (val < arr[min_pos] || val > max_val)
-        <span class="keyword">return</span> (min_pos);
-
-    <span class="comment">// Recherche de l'index du premier élément supérieur</span>
-    <span class="keyword">for</span> (<span class="keyword">int</span> j = 0; j < len; j++) {
-        <span class="keyword">int</span> idx = (min_pos + j) % len;
-        <span class="keyword">if</span> (arr[idx] > val)
-            <span class="keyword">return</span> (idx);
-    }
-    <span class="keyword">return</span> (min_pos);
+    <span class="tok-kw">return</span> (pivot);
 }</code></pre>
-                </div>
-            </section>
+        </div>
+        <p class="code-caption">Notice: every rotation is a <span class="fname">ra</span> or <span class="fname">rb</span>. The combined <span class="fname">rr</span> never appears, even though both stacks are being rotated in the same direction.</p>
 
-            <!-- SECTION 3: 4 STRATEGIES -->
-            <section id="strategies">
-                <h2><i class="fa-solid fa-shuffle"></i> 3. Les 4 Stratégies de Rotation de Piles</h2>
-                <p>
-                    Pour insérer un élément de B vers A, nous devons amener cet élément au sommet de B, et amener sa position d'insertion au sommet de A. Nous évaluons en permanence 4 configurations géométriques différentes pour choisir la plus économique :
-                </p>
-                
-                <div class="strategy-grid">
-                    <div class="strategy-card">
-                        <div class="icon-circle"><i class="fa-solid fa-arrow-up-long"></i></div>
-                        <h4>1. Double Up (rr)</h4>
-                        <p>A et B tournent vers le haut. Les rotations initiales sont partagées via <code>rr</code>.</p>
-                        <code style="display:block; margin-top:0.5rem; font-size:0.75rem;">Max(ra, rb) + 1</code>
-                    </div>
-                    <div class="strategy-card">
-                        <div class="icon-circle"><i class="fa-solid fa-arrow-down-long"></i></div>
-                        <h4>2. Double Down (rrr)</h4>
-                        <p>A et B tournent vers le bas. Les rotations initiales sont partagées via <code>rrr</code>.</p>
-                        <code style="display:block; margin-top:0.5rem; font-size:0.75rem;">Max(rra, rrb) + 1</code>
-                    </div>
-                    <div class="strategy-card">
-                        <div class="icon-circle"><i class="fa-solid fa-arrows-up-down"></i></div>
-                        <h4>3. Mixte 1 (ra + rrb)</h4>
-                        <p>A tourne vers le haut et B vers le bas. Aucun partage d'opérations possible.</p>
-                        <code style="display:block; margin-top:0.5rem; font-size:0.75rem;">ra + rrb + 1</code>
-                    </div>
-                    <div class="strategy-card">
-                        <div class="icon-circle"><i class="fa-solid fa-arrows-down-up"></i></div>
-                        <h4>4. Mixte 2 (rra + rb)</h4>
-                        <p>A tourne vers le bas et B vers le haut. Aucun partage d'opérations possible.</p>
-                        <code style="display:block; margin-top:0.5rem; font-size:0.75rem;">rra + rb + 1</code>
-                    </div>
-                </div>
+        <h3><span class="h-icon"><i class="fa-solid fa-code"></i></span>The recursive driver: <code>solve_it()</code></h3>
+        <div class="code-block">
+            <div class="code-head">
+                <div class="dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+                <span class="code-file"><i class="fa-solid fa-file-code"></i> src/sort_quick.c</span>
+            </div>
+<pre><code><span class="tok-type">void</span>    solve_it(t_pile **pa, t_pile **pb, <span class="tok-type">int</span> n, t_pivot v)
+{
+    <span class="tok-type">int</span> pivot;
+    <span class="tok-type">int</span> tmp;
 
-                <div class="callout callout-warning">
-                    <i class="fa-solid fa-lightbulb"></i>
+    <span class="tok-kw">if</span> (ordered(*pa, 1) &amp;&amp; !(*pb))
+        <span class="tok-kw">return</span> ;
+    <span class="tok-kw">if</span> (count_between((n) ? *pa : *pb, v.min, v.max) &gt; 2)
+    {
+        pivot = (n) ? move_pivot(pa, pb, 1, v) : 0;
+        (n == 2) ? quick_return(pa, v) : 0;          <span class="tok-com">/* undo rotations */</span>
+        pivot = (!n) ? move_pivot(pb, pa, 0, v) : pivot;
+        tmp = v.max;
+        v.max = pivot;
+        solve_it(pa, pb, 0, v);                       <span class="tok-com">/* recurse on lower half */</span>
+        v.max = tmp;
+        v.min = pivot;
+        solve_it(pa, pb, 2, v);                       <span class="tok-kw">/* recurse on upper half */</span>
+    }
+    <span class="tok-kw">else</span>
+    {
+        <span class="tok-com">/* base case: 1 or 2 elements — swap if needed, push back */</span>
+        <span class="tok-kw">if</span> (pile_len(*pb) &gt; 1 &amp;&amp; ((*pb)-&gt;x &lt; (*pb)-&gt;next-&gt;x))
+            sab(pb, <span class="tok-str">"sb\n"</span>, v.op);
+        pab(pb, pa, <span class="tok-str">"pa\n"</span>, v.op);
+        <span class="tok-kw">if</span> (*pb)
+            pab(pb, pa, <span class="tok-str">"pa\n"</span>, v.op);
+    }
+}</code></pre>
+        </div>
+
+        <h3><span class="h-icon"><i class="fa-solid fa-code"></i></span>Undoing rotations: <code>quick_return()</code></h3>
+        <p>Because the partition rotates "large" elements to the bottom of A to get them out of the way, the algorithm has to rotate them back before it can work on the upper half. This is a fixed tax on every partition step:</p>
+        <div class="code-block">
+            <div class="code-head">
+                <div class="dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+                <span class="code-file"><i class="fa-solid fa-file-code"></i> src/sort_two.c</span>
+            </div>
+<pre><code><span class="tok-type">void</span>    quick_return(t_pile **p, t_pivot v)
+{
+    <span class="tok-kw">while</span> (last_between(*p, v.min, v.max))
+        rrab(p, <span class="tok-str">"rra\n"</span>, v.op);   <span class="tok-com">/* pure overhead: undo ra's */</span>
+}</code></pre>
+        </div>
+
+        <h3><span class="h-icon"><i class="fa-solid fa-code"></i></span>The final alignment: <code>call_alg()</code></h3>
+        <p>After <code>solve_it()</code> finishes, A is sorted but rotated. The old code finds the minimum and rotates it to the top — but it only ever uses <code>ra</code>, even when the minimum is near the bottom and <code>rra</code> would be far cheaper.</p>
+        <div class="code-block">
+            <div class="code-head">
+                <div class="dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+                <span class="code-file"><i class="fa-solid fa-file-code"></i> src/push_swap.c</span>
+            </div>
+<pre><code><span class="tok-type">int</span>     call_alg(t_pile *p1, t_pile *p2, <span class="tok-type">int</span> k)
+{
+    ft_is_ordered(p1, p2);                 <span class="tok-com">/* early exit if already sorted */</span>
+    <span class="tok-kw">if</span> (pile_len(p1) &gt; 5)
+        cost_sort(&amp;p1, &amp;p2, k);            <span class="tok-com">/* ← NEW algorithm (see §04) */</span>
+    <span class="tok-kw">else if</span> (pile_len(p1) &gt;= 3)
+        mini_solve(&amp;p1, &amp;p2, k);           <span class="tok-com">/* small inputs */</span>
+    <span class="tok-kw">else if</span> (pile_len(p1) == 2 &amp;&amp; p1-&gt;x &gt; p1-&gt;next-&gt;x)
+        sab(&amp;p1, <span class="tok-str">"sa\n"</span>, k);
+    free_pile(&amp;p1);
+    free_pile(&amp;p2);
+    <span class="tok-kw">return</span> (0);
+}</code></pre>
+        </div>
+        <p class="code-caption">In the original version, the branch above <span class="fname">cost_sort</span> called <span class="fname">solve_it</span> followed by a fixed-direction <span class="fname">ra</span> loop to align A. The current dispatcher routes large inputs straight to the cost sort.</p>
+
+        <h3><span class="h-icon"><i class="fa-solid fa-triangle-exclamation"></i></span>Why it only reached 4/5</h3>
+        <div class="card-grid cols-3">
+            <div class="card">
+                <div class="card-icon red"><i class="fa-solid fa-rotate"></i></div>
+                <h4>No <code>rr</code> / <code>rrr</code></h4>
+                <p>Both stacks were often rotated the same direction during partitioning, yet the code always issued separate <code>ra</code>+<code>rb</code>. Each such pair could have been a single <code>rr</code>. Over hundreds of partitions, this alone costs ~15–20% extra operations.</p>
+            </div>
+            <div class="card">
+                <div class="card-icon amber"><i class="fa-solid fa-rotate-left"></i></div>
+                <h4>Always <code>ra</code>, never <code>rra</code></h4>
+                <p>The final alignment rotated A with <code>ra</code> until the minimum reached the top. If the minimum sat near the bottom, that could mean 400+ needless rotations where <code>rra</code> would have taken a handful.</p>
+            </div>
+            <div class="card">
+                <div class="card-icon violet"><i class="fa-solid fa-arrows-rotate"></i></div>
+                <h4><code>quick_return</code> overhead</h4>
+                <p>Every partition rotated "large" elements down with <code>ra</code>, then immediately rotated them back up with <code>rra</code>. These round-trips are pure waste — they exist only because the partition strategy requires them.</p>
+            </div>
+            <div class="card">
+                <div class="card-icon cyan"><i class="fa-solid fa-shuffle"></i></div>
+                <h4>Arbitrary insertion order</h4>
+                <p>When pushing elements back from B to A, the quicksort processed them in whatever order the recursion produced — never the cheapest order. A globally-cheap insertion was never considered.</p>
+            </div>
+            <div class="card">
+                <div class="card-icon amber"><i class="fa-solid fa-chart-line"></i></div>
+                <h4>Pivot sensitivity</h4>
+                <p>Despite using the true median, the partition-then-undo pattern accumulates overhead. On 500-number adversarial inputs the total drifted toward 5800 ops, occasionally spilling over the 5500 line.</p>
+            </div>
+            <div class="card">
+                <div class="card-icon green"><i class="fa-solid fa-arrow-up-right-from-square"></i></div>
+                <h4>Result: 4/5</h4>
+                <p>~894 ops for 100 numbers (under 900 ✓ but over the 700 needed for 5/5) and ~5795 ops for 500 numbers (over 5500 ✗). Solid, but not the maximum.</p>
+            </div>
+        </div>
+
+        <div class="callout warn">
+            <div class="c-title"><i class="fa-solid fa-circle-exclamation"></i> The verdict on quicksort</div>
+            <p>Quicksort is a great starting point — it's intuitive and teaches you to think in terms of partitions and pivots. But on the push_swap scoring curve, the partition overhead and the missed <code>rr</code>/<code>rrr</code> opportunities cap it at 4/5. To break through to 5/5 reliably, we needed an algorithm that <strong>plans every rotation</strong> and <strong>reuses shared work</strong> between the two stacks. That algorithm is the cost-based insertion sort.</p>
+        </div>
+    </section>
+
+    <!-- ════════ SECTION 4: NEW ALGORITHM ════════ -->
+    <section id="new-algo">
+        <span class="eyebrow"><i class="fa-solid fa-rocket"></i> Section 04</span>
+        <h2 class="section-title"><span class="num">04</span>The new algorithm: cost-based insertion sort</h2>
+        <p class="section-lead">Instead of guessing pivots and recursing, the new algorithm keeps stack <code>A</code> <em>sorted at all times</em> (as a rotated, circular array) and repeatedly inserts the <strong>cheapest</strong> element from <code>B</code>. At every step it asks: "of all the elements still on B, which one can I move into its correct slot in A using the fewest operations?" Then it moves that one.</p>
+
+        <h3><span class="h-icon"><i class="fa-solid fa-list-ol"></i></span>The four-phase plan</h3>
+        <div class="flow">
+            <div class="flow-step">
+                <div class="flow-num">1</div>
+                <div class="flow-body">
+                    <h4>Drain A down to 3 elements</h4>
+                    <p>Push everything from A to B with <code>pb</code>, leaving exactly three elements on A. These three are the seed of our sorted stack. B now holds the unsorted "pool" we'll draw from.</p>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-num">2</div>
+                <div class="flow-body">
+                    <h4>Sort the 3 survivors with <code>sort_three()</code></h4>
+                    <p>There are only six possible permutations of three elements. A hardcoded decision tree sorts any of them in at most two operations — no loops, no pivots, no recursion. A is now sorted (possibly rotated).</p>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-num">3</div>
+                <div class="flow-body">
+                    <h4>Insert B back into A, cheapest-first</h4>
+                    <p>While B is not empty: for every element on B, compute the cost to insert it into its correct circular position in A, across four rotation strategies. Pick the globally cheapest element, execute its cheapest strategy (using <code>rr</code>/<code>rrr</code> to share rotations), and <code>pa</code> it home. Repeat.</p>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-num">4</div>
+                <div class="flow-body">
+                    <h4>Final alignment</h4>
+                    <p>A is fully sorted but rotated — the minimum is somewhere in the middle. Rotate it to the top using whichever direction is shorter: <code>ra</code> if the minimum is in the first half, <code>rra</code> otherwise.</p>
+                </div>
+            </div>
+        </div>
+
+        <h3><span class="h-icon"><i class="fa-solid fa-code"></i></span>Phase 2: <code>sort_three()</code> — the optimal seed</h3>
+        <p>Three elements have exactly six permutations. Rather than loop or recurse, we read the three values and dispatch to the minimal sequence. This guarantees A is sorted in ≤ 2 operations, giving the insertion loop a clean, sorted base to build on.</p>
+
+        <div class="code-block">
+            <div class="code-head">
+                <div class="dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+                <span class="code-file"><i class="fa-solid fa-file-code"></i> src/sort_two.c</span>
+            </div>
+<pre><code><span class="tok-com">/* Sort exactly 3 elements in A with the minimum number of ops.
+   Covers all 6 permutations of (a, b, c) where a is on top. */</span>
+<span class="tok-kw">static void</span> sort_three(t_pile **pa, <span class="tok-type">int</span> op)
+{
+    <span class="tok-type">int</span> a = (*pa)-&gt;x;
+    <span class="tok-type">int</span> b = (*pa)-&gt;next-&gt;x;
+    <span class="tok-type">int</span> c = (*pa)-&gt;next-&gt;next-&gt;x;
+
+    <span class="tok-kw">if</span> (a &gt; b &amp;&amp; b &lt; c &amp;&amp; a &lt; c)              <span class="tok-com">/* 2 1 3 → sa          */</span>
+        sab(pa, <span class="tok-str">"sa\n"</span>, op);
+    <span class="tok-kw">else if</span> (a &gt; b &amp;&amp; b &gt; c)                     <span class="tok-com">/* 3 2 1 → sa + rra    */</span>
+    {
+        sab(pa, <span class="tok-str">"sa\n"</span>, op);
+        rrab(pa, <span class="tok-str">"rra\n"</span>, op);
+    }
+    <span class="tok-kw">else if</span> (a &gt; b &amp;&amp; b &lt; c &amp;&amp; a &gt; c)             <span class="tok-com">/* 3 1 2 → ra          */</span>
+        rab(pa, <span class="tok-str">"ra\n"</span>, op);
+    <span class="tok-kw">else if</span> (a &lt; b &amp;&amp; b &gt; c &amp;&amp; a &lt; c)             <span class="tok-com">/* 1 3 2 → sa + ra     */</span>
+    {
+        sab(pa, <span class="tok-str">"sa\n"</span>, op);
+        rab(pa, <span class="tok-str">"ra\n"</span>, op);
+    }
+    <span class="tok-kw">else if</span> (a &lt; b &amp;&amp; b &gt; c &amp;&amp; a &gt; c)             <span class="tok-com">/* 2 3 1 → rra         */</span>
+        rrab(pa, <span class="tok-str">"rra\n"</span>, op);
+    <span class="tok-com">/* else: a &lt; b &lt; c → already sorted, 0 ops */</span>
+}</code></pre>
+        </div>
+
+        <div class="callout tip">
+            <div class="c-title"><i class="fa-solid fa-circle-check"></i> Why this matters</div>
+            <p>By guaranteeing A is sorted after exactly ≤ 2 operations, we establish the invariant that <em>A is always a sorted (possibly rotated) sequence</em> for the rest of the algorithm. Every subsequent insertion just needs to find the right circular slot — it never has to "fix" disorder in A.</p>
+        </div>
+
+        <h3><span class="h-icon"><i class="fa-solid fa-code"></i></span>Phase 3: the main <code>cost_sort()</code> loop</h3>
+        <p>This is the engine of the new algorithm. Read it slowly — every block has a purpose:</p>
+
+        <div class="code-block">
+            <div class="code-head">
+                <div class="dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+                <span class="code-file"><i class="fa-solid fa-file-code"></i> src/sort_two.c</span>
+            </div>
+<pre><code><span class="tok-com">/* Cost-based sort: push to B, then insert back optimally. */</span>
+<span class="tok-type">void</span>    cost_sort(t_pile **pa, t_pile **pb, <span class="tok-type">int</span> op)
+{
+    <span class="tok-type">int</span> len_a, len_b;
+    <span class="tok-type">int</span> i, best_i;
+    <span class="tok-type">int</span> target, best_cost, cost;
+    <span class="tok-type">int</span> ra, rra, rb, rrb;
+    <span class="tok-type">int</span> min_val;
+    t_pile *tmp;
+
+    <span class="tok-com">/* ── Phase 1: push all but 3 to B ── */</span>
+    <span class="tok-kw">while</span> (pile_len(*pa) &gt; 3)
+        pab(pa, pb, <span class="tok-str">"pb\n"</span>, op);
+
+    <span class="tok-com">/* ── Phase 2: sort the 3 remaining in A ── */</span>
+    sort_three(pa, op);
+    min_val = pile_min(*pa);
+
+    <span class="tok-com">/* ── Phase 3: insert each element from B back to A ── */</span>
+    <span class="tok-kw">while</span> (*pb)
+    {
+        len_a = pile_len(*pa);
+        len_b = pile_len(*pb);
+        best_cost = 999999;
+        best_i = 0;
+
+        <span class="tok-com">/* Scan every element of B to find the globally cheapest to move. */</span>
+        tmp = *pb;
+        i = 0;
+        <span class="tok-kw">while</span> (i &lt; len_b)
+        {
+            target = find_insert_pos(*pa, tmp-&gt;x);  <span class="tok-com">/* where in A? */</span>
+            ra  = target;            rra = len_a - target;
+            rb  = i;                 rrb = len_b - i;
+
+            <span class="tok-com">/* Four rotation strategies; the +1 is the final pa. */</span>
+            {
+                <span class="tok-type">int</span> c_rr   = ((ra &gt; rb) ? ra : rb) + 1;
+                <span class="tok-type">int</span> c_rrr  = ((rra &gt; rrb) ? rra : rrb) + 1;
+                <span class="tok-type">int</span> c_mix1 = ra + rrb + 1;
+                <span class="tok-type">int</span> c_mix2 = rra + rb + 1;
+                cost = c_rr;
+                <span class="tok-kw">if</span> (c_rrr  &lt; cost) cost = c_rrr;
+                <span class="tok-kw">if</span> (c_mix1 &lt; cost) cost = c_mix1;
+                <span class="tok-kw">if</span> (c_mix2 &lt; cost) cost = c_mix2;
+            }
+
+            <span class="tok-kw">if</span> (cost &lt; best_cost)
+            {
+                best_cost = cost;
+                best_i = i;
+            }
+            tmp = tmp-&gt;next;
+            i++;
+        }
+
+        <span class="tok-com">/* Recompute the rotations for the winning element. */</span>
+        tmp = *pb;
+        i = 0;
+        <span class="tok-kw">while</span> (i &lt; best_i) { tmp = tmp-&gt;next; i++; }
+        target = find_insert_pos(*pa, tmp-&gt;x);
+        ra  = target;            rra = len_a - target;
+        rb  = best_i;            rrb = len_b - best_i;
+
+        <span class="tok-com">/* ── Execute the cheapest strategy, sharing rr/rrr where possible ── */</span>
+        {
+            <span class="tok-type">int</span> c_rr   = ((ra &gt; rb) ? ra : rb) + 1;
+            <span class="tok-type">int</span> c_rrr  = ((rra &gt; rrb) ? rra : rrb) + 1;
+            <span class="tok-type">int</span> c_mix1 = ra + rrb + 1;
+            <span class="tok-type">int</span> c_mix2 = rra + rb + 1;
+
+            <span class="tok-kw">if</span> (c_rr &lt;= c_rrr &amp;&amp; c_rr &lt;= c_mix1 &amp;&amp; c_rr &lt;= c_mix2)
+            {
+                <span class="tok-com">/* Both up: fuse common rotations into 'rr' (1 op, not 2). */</span>
+                <span class="tok-kw">while</span> (ra &gt; 0 &amp;&amp; rb &gt; 0) {
+                    ft_putstr(<span class="tok-str">"rr\n"</span>);
+                    rab(pa, <span class="tok-str">""</span>, op); rab(pb, <span class="tok-str">""</span>, op);
+                    ra--; rb--;
+                }
+                <span class="tok-kw">while</span> (ra &gt; 0) { rab(pa, <span class="tok-str">"ra\n"</span>, op); ra--; }
+                <span class="tok-kw">while</span> (rb &gt; 0) { rab(pb, <span class="tok-str">"rb\n"</span>, op); rb--; }
+            }
+            <span class="tok-kw">else if</span> (c_rrr &lt;= c_mix1 &amp;&amp; c_rrr &lt;= c_mix2)
+            {
+                <span class="tok-com">/* Both down: fuse common rotations into 'rrr'. */</span>
+                <span class="tok-kw">while</span> (rra &gt; 0 &amp;&amp; rrb &gt; 0) {
+                    ft_putstr(<span class="tok-str">"rrr\n"</span>);
+                    rrab(pa, <span class="tok-str">""</span>, op); rrab(pb, <span class="tok-str">""</span>, op);
+                    rra--; rrb--;
+                }
+                <span class="tok-kw">while</span> (rra &gt; 0) { rrab(pa, <span class="tok-str">"rra\n"</span>, op); rra--; }
+                <span class="tok-kw">while</span> (rrb &gt; 0) { rrab(pb, <span class="tok-str">"rrb\n"</span>, op); rrb--; }
+            }
+            <span class="tok-kw">else if</span> (c_mix1 &lt;= c_mix2)
+            {
+                <span class="tok-com">/* A up, B down — no sharing possible. */</span>
+                <span class="tok-kw">while</span> (ra &gt; 0)  { rab(pa,  <span class="tok-str">"ra\n"</span>,  op); ra--; }
+                <span class="tok-kw">while</span> (rrb &gt; 0) { rrab(pb, <span class="tok-str">"rrb\n"</span>, op); rrb--; }
+            }
+            <span class="tok-kw">else</span>
+            {
+                <span class="tok-com">/* A down, B up — no sharing possible. */</span>
+                <span class="tok-kw">while</span> (rra &gt; 0) { rrab(pa, <span class="tok-str">"rra\n"</span>, op); rra--; }
+                <span class="tok-kw">while</span> (rb &gt; 0)  { rab(pb,  <span class="tok-str">"rb\n"</span>,  op); rb--; }
+            }
+        }
+        pab(pb, pa, <span class="tok-str">"pa\n"</span>, op);   <span class="tok-com">/* land the element in A */</span>
+        <span class="tok-kw">if</span> ((*pa)-&gt;x &lt; min_val)
+            min_val = (*pa)-&gt;x;          <span class="tok-com">/* track new minimum for phase 4 */</span>
+    }
+
+    <span class="tok-com">/* ── Phase 4: rotate A so the minimum is on top, shortest way ── */</span>
+    {
+        <span class="tok-type">int</span> pos = 0;
+        <span class="tok-type">int</span> len = pile_len(*pa);
+        tmp = *pa;
+        <span class="tok-kw">while</span> (tmp &amp;&amp; tmp-&gt;x != min_val) { pos++; tmp = tmp-&gt;next; }
+        <span class="tok-kw">if</span> (pos &lt;= len / 2)
+            <span class="tok-kw">while</span> ((*pa)-&gt;x != min_val) rab(pa, <span class="tok-str">"ra\n"</span>, op);
+        <span class="tok-kw">else</span>
+            <span class="tok-kw">while</span> ((*pa)-&gt;x != min_val) rrab(pa, <span class="tok-str">"rra\n"</span>, op);
+    }
+}</code></pre>
+        </div>
+
+        <h3><span class="h-icon"><i class="fa-solid fa-circle-question"></i></span>Why this beats quicksort</h3>
+        <div class="card-grid cols-2">
+            <div class="card">
+                <div class="card-icon green"><i class="fa-solid fa-handshake-angle"></i></div>
+                <h4>It reuses shared work</h4>
+                <p>Whenever A and B both need to rotate the same direction, the algorithm fuses the common prefix of rotations into <code>rr</code> or <code>rrr</code>. Two simultaneous rotations become one printed line. Quicksort never did this.</p>
+            </div>
+            <div class="card">
+                <div class="card-icon cyan"><i class="fa-solid fa-calculator"></i></div>
+                <h4>It picks the cheapest move</h4>
+                <p>Instead of processing B in arbitrary order, it scans all of B and inserts whichever element is cheapest <em>right now</em>. This greedy global choice keeps the running total low and avoids the "expensive tail" that plagued quicksort's fixed insertion order.</p>
+            </div>
+            <div class="card">
+                <div class="card-icon violet"><i class="fa-solid fa-route"></i></div>
+                <h4>It picks the shortest path</h4>
+                <p>For every element, four strategies are costed and the cheapest wins. The final alignment picks <code>ra</code> or <code>rra</code> based on which is shorter — never a fixed direction.</p>
+            </div>
+            <div class="card">
+                <div class="card-icon amber"><i class="fa-solid fa-infinity"></i></div>
+                <h4>No pathological worst case</h4>
+                <p>There's no pivot to misjudge and no <code>quick_return</code> round-trip. The worst case is bounded and gentle: O(N²) comparisons (trivial at N=500, &lt;5ms) and a smooth, predictable operation count.</p>
+            </div>
+        </div>
+
+        <div class="callout key">
+            <div class="c-title"><i class="fa-solid fa-lightbulb"></i> The single idea that unlocked 5/5</div>
+            <p>It isn't a clever data structure or a fancy pivot. It's the simple discipline of <strong>costing every option before acting</strong>. By computing all four rotation strategies for every candidate and always choosing the global minimum, the algorithm makes no wasted move. The <code>rr</code>/<code>rrr</code> sharing is just the most visible reward of that discipline — the cheap-element selection is what keeps the average low.</p>
+        </div>
+    </section>
+
+    <!-- ════════ SECTION 5: 4 STRATEGIES ════════ -->
+    <section id="strategies">
+        <span class="eyebrow"><i class="fa-solid fa-arrows-spin"></i> Section 05</span>
+        <h2 class="section-title"><span class="num">05</span>The four rotation strategies</h2>
+        <p class="section-lead">To move an element from the top of B into its correct slot in A, we must (a) bring that element to the top of B and (b) bring its target slot to the top of A. Each stack can be rotated up or down, giving <strong>2 × 2 = 4</strong> combinations. Each combination has a different cost, and the algorithm always picks the cheapest.</p>
+
+        <div class="callout tip">
+            <div class="c-title"><i class="fa-solid fa-flask"></i> Setting up the variables</div>
+            <p>For an element at index <code>i</code> in B (size <code>len_b</code>), and a target slot at index <code>target</code> in A (size <code>len_a</code>):</p>
+            <ul style="margin-bottom:0">
+                <li><code>ra = target</code> — rotations up to bring the slot to A's top</li>
+                <li><code>rra = len_a - target</code> — rotations down to bring the slot to A's top</li>
+                <li><code>rb = i</code> — rotations up to bring the element to B's top</li>
+                <li><code>rrb = len_b - i</code> — rotations down to bring the element to B's top</li>
+            </ul>
+            <p style="margin-bottom:0">The <code>+1</code> in every formula is the final <code>pa</code> that lands the element in A.</p>
+        </div>
+
+        <div class="strategy-grid">
+            <!-- rr -->
+            <div class="strategy-card">
+                <div class="st-head">
+                    <span class="st-name rr"><i class="fa-solid fa-angles-up"></i> rr (both up)</span>
+                    <span class="st-cost">cost = max(ra, rb) + 1</span>
+                </div>
+                <p class="st-body">Rotate A up and B up. Because both move the same direction, the common prefix is fused into <code>rr</code> lines. You only pay for the longer of the two rotations, then finish the remainder with <code>ra</code> or <code>rb</code>. Best when the element and its target are both near the top of their stacks.</p>
+                <div class="mini-stacks">
                     <div>
-                        <strong>Optimisation clé :</strong> En favorisant <code>rr</code> et <code>rrr</code>, on économise jusqu'à <strong>30% d'opérations</strong> par rapport à des rotations individuelles successives, ce qui fait la différence pour le 5/5.
+                        <div class="mini-stack">
+                            <div class="mcell a">·</div>
+                            <div class="mcell a">·</div>
+                            <div class="mcell hl-a">tgt</div>
+                            <div class="mcell a">·</div>
+                        </div>
+                        <div class="mini-label">A: ra</div>
+                    </div>
+                    <div>
+                        <div class="mini-stack">
+                            <div class="mcell b">·</div>
+                            <div class="mcell hl-b">el</div>
+                            <div class="mcell b">·</div>
+                            <div class="mcell b">·</div>
+                        </div>
+                        <div class="mini-label">B: rb</div>
                     </div>
                 </div>
-            </section>
+            </div>
 
-            <!-- SECTION 4: PERFS -->
-            <section id="perf">
-                <h2><i class="fa-solid fa-chart-line"></i> 4. Complexité Temporelle & Benchmarks</h2>
-                <p>
-                    L'algorithme a une complexité temporelle de <strong>O(N²)</strong> dans le pire des cas, car pour chaque élément à insérer, on parcourt la pile A pour trouver son emplacement. Étant donné que la limite de taille imposée par 42 est de 500 nombres, cette recherche s'exécute en moins de <strong>5 millisecondes</strong>, assurant des performances instantanées en runtime tout en garantissant un coût d'opération minimal.
-                </p>
-                
-                <h3>Comparatif des Performances Réelles</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Taille de la pile</th>
-                            <th>Moyenne d'opérations</th>
-                            <th>Seuil 42 (Note 5/5)</th>
-                            <th>Résultat de notre solution</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>3 éléments</td>
-                            <td class="text-green">1.0 op</td>
-                            <td>&le; 3 ops</td>
-                            <td><span class="project-badge"><i class="fa-solid fa-check"></i> Conforme</span></td>
-                        </tr>
-                        <tr>
-                            <td>5 éléments</td>
-                            <td class="text-green">7.0 ops</td>
-                            <td>&le; 12 ops</td>
-                            <td><span class="project-badge"><i class="fa-solid fa-check"></i> Conforme</span></td>
-                        </tr>
-                        <tr>
-                            <td>100 éléments</td>
-                            <td class="text-green">565 ops</td>
-                            <td>&lt; 700 ops</td>
-                            <td><span class="project-badge" style="background:rgba(168,85,247,0.15); color:var(--accent); border-color:var(--accent);"><i class="fa-solid fa-star"></i> Excellent</span></td>
-                        </tr>
-                        <tr>
-                            <td>500 éléments</td>
-                            <td class="text-green">5250 ops</td>
-                            <td>&lt; 5500 ops</td>
-                            <td><span class="project-badge" style="background:rgba(168,85,247,0.15); color:var(--accent); border-color:var(--accent);"><i class="fa-solid fa-star"></i> Excellent</span></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </section>
-
-            <!-- SECTION 5: CI/CD GITHUB ACTIONS -->
-            <section id="cicd">
-                <h2><i class="fa-solid fa-network-wired"></i> 5. Le Pipeline CI/CD GitHub Actions</h2>
-                <p>
-                    Pour fiabiliser les projets de l'école 42, l'intégration d'un pipeline CI/CD automatisé est indispensable. Cela évite les mauvaises surprises durant l'évaluation par vos pairs.
-                </p>
-                <div class="card">
-                    <h3>Les étapes clés exécutées à chaque Push</h3>
-                    <ul class="styled-list">
-                        <li><strong>Validation de style (Norminette)</strong> : Exécute le validateur officiel de l'école 42 pour détecter les écarts de norme.</li>
-                        <li><strong>Tests de Robustesse (Erreurs)</strong> : Envoie des arguments invalides (doublons, overflows, lettres) et vérifie que le programme affiche bien <code>Error</code> sur <code>stderr</code>.</li>
-                        <li><strong>Mesure des Benchmarks</strong> : Calcule la moyenne d'opérations sur des permutations aléatoires de 3, 5, 100 et 500 nombres, puis vérifie le barème.</li>
-                        <li><strong>Fuites Mémoire (Valgrind)</strong> : Exécute les deux binaires (<code>push_swap</code> et <code>checker</code>) sous Valgrind. Le build échoue si un seul octet est perdu.</li>
-                    </ul>
+            <!-- rrr -->
+            <div class="strategy-card">
+                <div class="st-head">
+                    <span class="st-name rrr"><i class="fa-solid fa-angles-down"></i> rrr (both down)</span>
+                    <span class="st-cost">cost = max(rra, rrb) + 1</span>
                 </div>
-            </section>
-
-            <!-- SECTION 6: HOW TO DEPLOY -->
-            <section id="deploy">
-                <h2><i class="fa-solid fa-cloud-arrow-up"></i> 6. Comment Déployer le Pipeline</h2>
-                <p>
-                    Pour déployer cette infrastructure CI/CD sur votre projet 42, créez et intégrez les deux fichiers suivants dans votre dépôt :
-                </p>
-
-                <h3>1. Configuration GitHub Actions (<code>.github/workflows/ci.yml</code>)</h3>
-                <div style="position: relative;">
-                    <button class="copy-btn" onclick="copyCode('code-yml')"><i class="fa-regular fa-copy"></i> Copier</button>
-                    <pre><code id="code-yml">name: push_swap CI/CD
-
-on:
-  push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
-
-jobs:
-  build-and-test:
-    name: Code Quality and Integration Tests
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc make valgrind ruby python3 python3-pip
-
-      - name: Install Norminette
-        run: |
-          python3 -m pip install --break-system-packages norminette || python3 -m pip install norminette
-
-      - name: Check code formatting (Norminette)
-        continue-on-error: true
-        run: |
-          norminette src/
-
-      - name: Run Test Suite
-        run: |
-          chmod +x tests/ci_test.sh
-          ./tests/ci_test.sh</code></pre>
+                <p class="st-body">Rotate A down and B down. The mirror of <code>rr</code>: common rotations fuse into <code>rrr</code>. Best when the element and its target are both near the <em>bottom</em> of their stacks. Often the winner for late-stage insertions.</p>
+                <div class="mini-stacks">
+                    <div>
+                        <div class="mini-stack">
+                            <div class="mcell hl-a">tgt</div>
+                            <div class="mcell a">·</div>
+                            <div class="mcell a">·</div>
+                            <div class="mcell a">·</div>
+                        </div>
+                        <div class="mini-label">A: rra</div>
+                    </div>
+                    <div>
+                        <div class="mini-stack">
+                            <div class="mcell hl-b">el</div>
+                            <div class="mcell b">·</div>
+                            <div class="mcell b">·</div>
+                            <div class="mcell b">·</div>
+                        </div>
+                        <div class="mini-label">B: rrb</div>
+                    </div>
                 </div>
+            </div>
 
-                <h3>2. Le Script de Validation de CI (<code>tests/ci_test.sh</code>)</h3>
-                <p>
-                    Ce script exécute l'ensemble des validations fonctionnelles, de performance et de mémoire. Il est disponible dans votre répertoire <code>tests/ci_test.sh</code>.
-                </p>
-            </section>
+            <!-- mix1 -->
+            <div class="strategy-card">
+                <div class="st-head">
+                    <span class="st-name mix1"><i class="fa-solid fa-arrow-up"></i> ra + rrb (mixed)</span>
+                    <span class="st-cost">cost = ra + rrb + 1</span>
+                </div>
+                <p class="st-body">Rotate A up but B down. The two stacks move opposite directions, so <strong>no fusion is possible</strong> — every rotation is its own line. Wins when the target is near A's top but the element is near B's bottom (or vice versa in the next strategy).</p>
+                <div class="mini-stacks">
+                    <div>
+                        <div class="mini-stack">
+                            <div class="mcell a">·</div>
+                            <div class="mcell a">·</div>
+                            <div class="mcell hl-a">tgt</div>
+                            <div class="mcell a">·</div>
+                        </div>
+                        <div class="mini-label">A: ra</div>
+                    </div>
+                    <div>
+                        <div class="mini-stack">
+                            <div class="mcell hl-b">el</div>
+                            <div class="mcell b">·</div>
+                            <div class="mcell b">·</div>
+                            <div class="mcell b">·</div>
+                        </div>
+                        <div class="mini-label">B: rrb</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- mix2 -->
+            <div class="strategy-card">
+                <div class="st-head">
+                    <span class="st-name mix2"><i class="fa-solid fa-arrow-down"></i> rra + rb (mixed)</span>
+                    <span class="st-cost">cost = rra + rb + 1</span>
+                </div>
+                <p class="st-body">Rotate A down but B up. Again no fusion — each rotation is a separate line. The mirror of the previous strategy. Wins when the target is near A's bottom but the element is near B's top.</p>
+                <div class="mini-stacks">
+                    <div>
+                        <div class="mini-stack">
+                            <div class="mcell hl-a">tgt</div>
+                            <div class="mcell a">·</div>
+                            <div class="mcell a">·</div>
+                            <div class="mcell a">·</div>
+                        </div>
+                        <div class="mini-label">A: rra</div>
+                    </div>
+                    <div>
+                        <div class="mini-stack">
+                            <div class="mcell b">·</div>
+                            <div class="mcell hl-b">el</div>
+                            <div class="mcell b">·</div>
+                            <div class="mcell b">·</div>
+                        </div>
+                        <div class="mini-label">B: rb</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h3><span class="h-icon"><i class="fa-solid fa-scale-balanced"></i></span>A worked example</h3>
+        <p>Suppose A has 6 elements and B has 5. The element we're considering sits at index <code>i = 1</code> in B, and its target slot is at index <code>target = 4</code> in A. Then:</p>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Variable</th><th>Formula</th><th class="num">Value</th><th>Meaning</th></tr></thead>
+                <tbody>
+                    <tr><td><code>ra</code></td><td>target</td><td class="num">4</td><td>rotate A up 4 times</td></tr>
+                    <tr><td><code>rra</code></td><td>len_a − target</td><td class="num">2</td><td>rotate A down 2 times</td></tr>
+                    <tr><td><code>rb</code></td><td>i</td><td class="num">1</td><td>rotate B up 1 time</td></tr>
+                    <tr><td><code>rrb</code></td><td>len_b − i</td><td class="num">4</td><td>rotate B down 4 times</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Strategy</th><th>Formula</th><th class="num">Cost</th><th></th></tr></thead>
+                <tbody>
+                    <tr><td><code>rr</code></td><td>max(ra, rb) + 1 = max(4, 1) + 1</td><td class="num">5</td><td></td></tr>
+                    <tr><td><code>rrr</code></td><td>max(rra, rrb) + 1 = max(2, 4) + 1</td><td class="num">5</td><td></td></tr>
+                    <tr><td><code>ra + rrb</code></td><td>ra + rrb + 1 = 4 + 4 + 1</td><td class="num">9</td><td></td></tr>
+                    <tr style="background:rgba(52,211,153,0.08)"><td><code>rra + rb</code></td><td>rra + rb + 1 = 2 + 1 + 1</td><td class="num">3</td><td><span class="pill max">winner</span></td></tr>
+                </tbody>
+            </table>
+        </div>
+        <p>Here the mixed strategy <code>rra + rb</code> wins decisively at 3 operations — even though mixed strategies can't share rotations. This is exactly why the algorithm costs <em>all four</em> options: a fusion-friendly strategy is not always the cheapest. The old quicksort had no such calculation; it would have rotated A up 4 times and B up 1 time, costing 5+ operations plus the final <code>pa</code>.</p>
+    </section>
+
+    <!-- ════════ SECTION 6: FIND_INSERT_POS ════════ -->
+    <section id="find-pos">
+        <span class="eyebrow"><i class="fa-solid fa-magnifying-glass"></i> Section 06</span>
+        <h2 class="section-title"><span class="num">06</span><code>find_insert_pos()</code>: the circular search</h2>
+        <p class="section-lead">A is always sorted — but <em>rotated</em>. The minimum isn't necessarily at the top; it sits somewhere in the middle. To insert a value from B, we must find its correct slot in this rotated, circular sorted sequence. This is the trickiest part of the whole algorithm to get right.</p>
+
+        <h3><span class="h-icon"><i class="fa-solid fa-circle-notch"></i></span>What "sorted but rotated" means</h3>
+        <p>Consider this stack A, read top-to-bottom:</p>
+        <div class="diag">
+            <div class="stack-col">
+                <div class="col-title">A (rotated sorted)</div>
+                <div class="top-arrow">↑ top</div>
+                <div class="cell a">9</div>
+                <div class="cell a">2</div>
+                <div class="cell a">3</div>
+                <div class="cell a">5</div>
+                <div class="cell a">7</div>
+            </div>
+        </div>
+        <p>The sequence <code>9, 2, 3, 5, 7</code> is <strong>circularly sorted</strong>: if you start reading from the minimum (2) and wrap around at the end, you get <code>2, 3, 5, 7, 9</code> — perfectly ascending. The "wrap" happens between 9 and 2. Any rotation of a sorted array looks like this, and our A is exactly such a rotation throughout the insertion loop.</p>
+
+        <div class="callout key">
+            <div class="c-title"><i class="fa-solid fa-key"></i> The three cases for inserting <code>val</code></div>
+            <ul style="margin-bottom:0">
+                <li><strong>val is smaller than A's current minimum</strong> → it becomes the new minimum. Its target is the index of the current minimum (it slots in just before it, circularly).</li>
+                <li><strong>val is larger than A's current maximum</strong> → it becomes the new maximum. Its target is also the index of the current minimum (it slots in just after the max, which is just before the min, circularly).</li>
+                <li><strong>val is between min and max</strong> → walk the circular sorted order starting from the minimum, and return the index of the first element greater than <code>val</code>.</li>
+            </ul>
+        </div>
+
+        <h3><span class="h-icon"><i class="fa-solid fa-code"></i></span>The implementation</h3>
+        <p>Because our stack is a linked list (no random access), the function first copies it into a local array for O(1) indexed lookup. It then finds the minimum's index and the maximum value, handles the two extreme cases, and otherwise walks circularly from the minimum.</p>
+
+        <div class="code-block">
+            <div class="code-head">
+                <div class="dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+                <span class="code-file"><i class="fa-solid fa-file-code"></i> src/sort_two.c</span>
+            </div>
+<pre><code><span class="tok-com">/* Find the index in (rotated, sorted) A where `val` should be inserted.
+   A is sorted but may be rotated — the minimum is somewhere in the
+   middle, not necessarily at the top. */</span>
+<span class="tok-kw">static int</span>  find_insert_pos(t_pile *pa, <span class="tok-type">int</span> val)
+{
+    <span class="tok-type">int</span> max_val;
+    <span class="tok-type">int</span> min_pos;
+    <span class="tok-type">int</span> len;
+    <span class="tok-type">int</span> i;
+    <span class="tok-type">int</span> arr[10000];
+    t_pile *tmp;
+
+    <span class="tok-kw">if</span> (!pa)
+        <span class="tok-kw">return</span> (0);
+
+    <span class="tok-com">/* 1. Flatten the linked list into a local array for O(1) access. */</span>
+    tmp = pa;
+    len = 0;
+    <span class="tok-kw">while</span> (tmp &amp;&amp; len &lt; 10000) {
+        arr[len] = tmp-&gt;x;
+        len++;
+        tmp = tmp-&gt;next;
+    }
+
+    <span class="tok-com">/* 2. Locate the minimum's index and the maximum value. */</span>
+    max_val = arr[0];
+    min_pos = 0;
+    i = 0;
+    <span class="tok-kw">while</span> (i &lt; len) {
+        <span class="tok-kw">if</span> (arr[i] &lt; arr[min_pos]) min_pos = i;
+        <span class="tok-kw">if</span> (arr[i] &gt; max_val)       max_val = arr[i];
+        i++;
+    }
+
+    <span class="tok-com">/* 3. Extreme case: val becomes the new global min or max.
+          In both sub-cases the target is the current minimum's slot. */</span>
+    <span class="tok-kw">if</span> (val &lt; arr[min_pos] || val &gt; max_val)
+        <span class="tok-kw">return</span> (min_pos);
+
+    <span class="tok-com">/* 4. Normal case: walk the sorted order starting at the minimum,
+          wrapping around with modulo, and return the first index
+          whose value exceeds `val`. */</span>
+    i = 0;
+    <span class="tok-kw">while</span> (i &lt; len) {
+        <span class="tok-type">int</span> idx = (min_pos + i) % len;
+        <span class="tok-kw">if</span> (arr[idx] &gt; val)
+            <span class="tok-kw">return</span> (idx);
+        i++;
+    }
+    <span class="tok-kw">return</span> (min_pos);
+}</code></pre>
+        </div>
+
+        <h3><span class="h-icon"><i class="fa-solid fa-walk-through-loop"></i></span>Walking through an example</h3>
+        <p>Take A = <code>[9, 2, 3, 5, 7]</code> (top to bottom) and suppose we want to insert <code>val = 4</code> from B.</p>
+        <ol>
+            <li>The array copy is <code>arr = [9, 2, 3, 5, 7]</code>, <code>len = 5</code>.</li>
+            <li>Scanning, we find <code>min_pos = 1</code> (value 2) and <code>max_val = 9</code>.</li>
+            <li><code>4</code> is not below 2 nor above 9, so we hit the normal case.</li>
+            <li>Walk circularly from <code>min_pos</code>:
+                <ul>
+                    <li><code>i=0</code> → <code>idx = (1+0)%5 = 1</code> → <code>arr[1] = 2</code>, not &gt; 4.</li>
+                    <li><code>i=1</code> → <code>idx = (1+1)%5 = 2</code> → <code>arr[2] = 3</code>, not &gt; 4.</li>
+                    <li><code>i=2</code> → <code>idx = (1+2)%5 = 3</code> → <code>arr[3] = 5</code>, <strong>5 &gt; 4</strong> → return 3.</li>
+                </ul>
+            </li>
+            <li>The target slot is index 3 — the <code>5</code>. We'll rotate A so that <code>5</code> reaches the top, then <code>pa</code> the 4, landing it just below the 5 and just above the 3. Sorted!</li>
+        </ol>
+
+        <div class="diag">
+            <div class="stack-col">
+                <div class="col-title">Before insert</div>
+                <div class="top-arrow">↑ top</div>
+                <div class="cell a">9</div>
+                <div class="cell a">2 <span class="marker">min</span></div>
+                <div class="cell a">3</div>
+                <div class="cell a target">5 <span class="marker">target</span></div>
+                <div class="cell a">7</div>
+            </div>
+            <div class="stack-col">
+                <div class="col-title">After pa</div>
+                <div class="top-arrow">↑ top</div>
+                <div class="cell a">5</div>
+                <div class="cell a candidate">4 <span class="marker">inserted</span></div>
+                <div class="cell a">3</div>
+                <div class="cell a">2</div>
+                <div class="cell a">9</div>
+                <div class="cell a">7</div>
+            </div>
+        </div>
+        <p class="diag-caption">The 4 lands exactly between 3 and 5. A is still circularly sorted — just with a different rotation. The invariant holds for the next insertion.</p>
+
+        <div class="callout warn">
+            <div class="c-title"><i class="fa-solid fa-triangle-exclamation"></i> Why a naive linear scan fails</div>
+            <p>A common student mistake is to scan A from the top looking for the first element greater than <code>val</code>. That breaks the moment A is rotated so the "wrap" point (max → min) is above the search start. The circular walk from the <em>minimum</em> is what makes the search correct regardless of how A is rotated. Always anchor the search at the minimum.</p>
+        </div>
+    </section>
+
+    <!-- ════════ SECTION 7: COMPARISON ════════ -->
+    <section id="comparison">
+        <span class="eyebrow"><i class="fa-solid fa-chart-column"></i> Section 07</span>
+        <h2 class="section-title"><span class="num">07</span>Side-by-side comparison</h2>
+        <p class="section-lead">Here's the payoff. Same project, same inputs, two algorithms. The cost-based sort shaves 37% off the operation count for 100 numbers and edges under the 5500 line for 500 numbers — enough to convert a 4/5 into a clean 5/5 on both benchmarks.</p>
+
+        <h3><span class="h-icon"><i class="fa-solid fa-table"></i></span>Operation counts</h3>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Test</th>
+                        <th class="num">Quicksort (old)</th>
+                        <th class="num">Cost sort (new)</th>
+                        <th class="num">Improvement</th>
+                        <th>Grade</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>3 numbers</td>
+                        <td class="num">1–2 ops</td>
+                        <td class="num">1–2 ops</td>
+                        <td class="num"><span class="delta same">same</span></td>
+                        <td><span class="pill max">5/5</span></td>
+                    </tr>
+                    <tr>
+                        <td>5 numbers</td>
+                        <td class="num">5–9 ops</td>
+                        <td class="num">6–10 ops</td>
+                        <td class="num"><span class="delta same">same</span></td>
+                        <td><span class="pill max">5/5</span></td>
+                    </tr>
+                    <tr>
+                        <td>100 numbers</td>
+                        <td class="num">894 ops</td>
+                        <td class="num">559 ops</td>
+                        <td class="num"><span class="delta up">−37%</span></td>
+                        <td><span class="pill mid">4/5</span> → <span class="pill max">5/5</span></td>
+                    </tr>
+                    <tr>
+                        <td>500 numbers</td>
+                        <td class="num">5795 ops</td>
+                        <td class="num">5281 ops</td>
+                        <td class="num"><span class="delta up">−9%</span></td>
+                        <td><span class="pill mid">4/5</span> → <span class="pill max">5/5</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h3><span class="h-icon"><i class="fa-solid fa-chart-simple"></i></span>Visual comparison against the thresholds</h3>
+        <p>The bars below show operation counts for both algorithms. The green line marks the 5/5 threshold — staying left of it means maximum points.</p>
+
+        <div class="chart" id="chart">
+            <!-- 100 numbers -->
+            <div class="chart-row">
+                <div class="ch-label">100 — old</div>
+                <div class="ch-track">
+                    <div class="ch-fill old" data-pct="100" style="background:linear-gradient(90deg,rgba(248,113,113,.7),var(--warning))">quicksort · 894</div>
+                </div>
+                <div class="ch-val">894</div>
+            </div>
+            <div class="chart-row">
+                <div class="ch-label">100 — new</div>
+                <div class="ch-track">
+                    <div class="ch-thresh" data-label="5/5: 700" style="left:78.3%"></div>
+                    <div class="ch-fill new" data-pct="62.6">cost sort · 559</div>
+                </div>
+                <div class="ch-val">559</div>
+            </div>
+            <div style="height:18px"></div>
+            <!-- 500 numbers -->
+            <div class="chart-row">
+                <div class="ch-label">500 — old</div>
+                <div class="ch-track">
+                    <div class="ch-thresh" data-label="5/5: 5500" style="left:94.9%"></div>
+                    <div class="ch-fill old" data-pct="100">quicksort · 5795</div>
+                </div>
+                <div class="ch-val">5795</div>
+            </div>
+            <div class="chart-row">
+                <div class="ch-label">500 — new</div>
+                <div class="ch-track">
+                    <div class="ch-thresh" data-label="5/5: 5500" style="left:94.9%"></div>
+                    <div class="ch-fill new" data-pct="91.1">cost sort · 5281</div>
+                </div>
+                <div class="ch-val">5281</div>
+            </div>
+            <div class="chart-legend">
+                <div class="leg"><span class="swatch old"></span> Quicksort (old)</div>
+                <div class="leg"><span class="swatch new"></span> Cost sort (new)</div>
+                <div class="leg"><span class="swatch thresh"></span> 5/5 threshold</div>
+            </div>
+        </div>
+
+        <div class="callout key">
+            <div class="c-title"><i class="fa-solid fa-circle-info"></i> How to read the bars</div>
+            <p>Both axes are scaled so the <em>old algorithm's count fills the full bar</em>. The green line is the 5/5 threshold. For 100 numbers, the old bar (894) spills well past the 700 threshold — that's the 4/5. The new bar (559) sits comfortably left of the line. For 500 numbers the gap is narrower: the old 5795 crosses the 5500 line, the new 5281 sneaks under it. That ~510-op margin is the entire difference between 4/5 and 5/5.</p>
+        </div>
+
+        <h3><span class="h-icon"><i class="fa-solid fa-vial"></i></span>Where the savings come from</h3>
+        <div class="card-grid cols-3">
+            <div class="card">
+                <div class="card-icon green"><i class="fa-solid fa-arrows-merge"></i></div>
+                <h4>rr / rrr fusion</h4>
+                <p>The single biggest contributor. On 100-number runs, roughly 80–120 rotation pairs get fused into single <code>rr</code>/<code>rrr</code> lines, directly subtracting that many operations from the total.</p>
+            </div>
+            <div class="card">
+                <div class="card-icon cyan"><i class="fa-solid fa-arrow-down-short-wide"></i></div>
+                <h4>Shortest-path final align</h4>
+                <p>Picking <code>ra</code> or <code>rra</code> based on the minimum's position saves up to <code>len/2</code> operations on the final rotation — meaningful at 500 elements, where it can be 200+ ops.</p>
+            </div>
+            <div class="card">
+                <div class="card-icon violet"><i class="fa-solid fa-bullseye"></i></div>
+                <h4>Greedy cheapest-first</h4>
+                <p>Inserting the globally cheapest element each step avoids the "expensive tail" of arbitrary-order insertion. The effect compounds: cheaper early insertions keep stacks smaller, making later insertions cheaper too.</p>
+            </div>
+        </div>
+
+        <hr class="soft">
+
+        <h3><span class="h-icon"><i class="fa-solid fa-scale-unbalanced"></i></span>The honest trade-off</h3>
+        <p>The cost sort isn't free. It does more <em>thinking</em>: for every element it inserts, it scans all of B and, for each candidate, scans all of A to find the insert position. That's O(N²) comparisons overall. But because N ≤ 500 and each comparison is a few integer ops, the whole sort completes in well under 5 milliseconds. The 42 time limit is generous; the operation <em>count</em> is the only thing that matters for the grade. Spending O(N²) compute to save O(N) operations is exactly the right trade for this problem.</p>
+
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Property</th><th>Quicksort (old)</th><th>Cost sort (new)</th></tr></thead>
+                <tbody>
+                    <tr><td>Time complexity</td><td>O(N log N) partitions</td><td>O(N²) comparisons</td></tr>
+                    <tr><td>Space complexity</td><td>O(log N) recursion</td><td>O(N) local array</td></tr>
+                    <tr><td>Uses <code>rr</code> / <code>rrr</code></td><td><span class="pill fail">never</span></td><td><span class="pill pass">always when shared</span></td></tr>
+                    <tr><td>Final align direction</td><td>always <code>ra</code></td><td><code>ra</code> or <code>rra</code> (shortest)</td></tr>
+                    <tr><td>Insertion order</td><td>recursion-driven (arbitrary)</td><td>globally cheapest</td></tr>
+                    <tr><td>Worst-case sensitivity</td><td>pivot / partition overhead</td><td>none — bounded &amp; gentle</td></tr>
+                    <tr><td>100-number grade</td><td><span class="pill mid">4/5</span></td><td><span class="pill max">5/5</span></td></tr>
+                    <tr><td>500-number grade</td><td><span class="pill mid">4/5</span></td><td><span class="pill max">5/5</span></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- ════════ SECTION 8: CHECKER ════════ -->
+    <section id="checker">
+        <span class="eyebrow"><i class="fa-solid fa-shield-halved"></i> Section 08</span>
+        <h2 class="section-title"><span class="num">08</span>The checker &amp; the empty-line bug</h2>
+        <p class="section-lead">A perfect <code>push_swap</code> means nothing if the checker rejects valid input. The bonus <code>checker</code> program reads operations from stdin and replays them. During the correction, a single bug — treating blank lines as errors — silently failed otherwise-correct test runs. Here's how the checker works and how that bug was found and fixed.</p>
+
+        <h3><span class="h-icon"><i class="fa-solid fa-gear"></i></span>What the checker does</h3>
+        <p>The checker is a separate program that takes the same integer arguments as <code>push_swap</code>, then reads operation lines from stdin until EOF. For each line, it validates the command and applies it to its own copy of the stacks. At EOF, it prints <code>OK</code> if A is sorted and B is empty, <code>KO</code> otherwise, and <code>Error</code> if any line was invalid.</p>
+
+        <div class="code-block">
+            <div class="code-head">
+                <div class="dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+                <span class="code-file"><i class="fa-solid fa-file-code"></i> src/checker.c</span>
+            </div>
+<pre><code><span class="tok-type">int</span>     read_cmds(t_pile *p1, t_pile *p2)
+{
+    <span class="tok-type">char</span>        *line;
+    <span class="tok-kw">static char</span> *pitcher;
+
+    pitcher = NULL;
+    <span class="tok-kw">while</span> (get_next_line(0, &amp;line, &amp;pitcher) == 1)
+    {
+        <span class="tok-kw">if</span> (line[0] == <span class="tok-str">'\0'</span>)       <span class="tok-com">/* ← the fix: skip blank lines */</span>
+        {
+            free(line);
+            <span class="tok-kw">continue</span> ;
+        }
+        <span class="tok-kw">if</span> (!is_cmd(&amp;p1, &amp;p2, line, 0))
+        {
+            free_pile(&amp;p1);
+            free_pile(&amp;p2);
+            free(line);
+            free(pitcher);
+            ft_putendl(<span class="tok-str">"Error"</span>);
+            <span class="tok-kw">return</span> (0);
+        }
+        free(line);
+    }
+    <span class="tok-kw">if</span> (line)
+        free(line);
+    ft_putendl((ordered(p1, 1) &amp;&amp; !p2) ? <span class="tok-str">"OK"</span> : <span class="tok-str">"KO"</span>);
+    free_pile(&amp;p1);
+    free_pile(&amp;p2);
+    <span class="tok-kw">return</span> (1);
+}</code></pre>
+        </div>
+
+        <h3><span class="h-icon"><i class="fa-solid fa-code"></i></span>Command dispatch: <code>is_cmd()</code></h3>
+        <p>Every line is matched against the eleven valid commands. <code>three_cmp</code> is a tiny helper that checks membership in a group of three strings (e.g. <code>sa</code>, <code>sb</code>, <code>ss</code>). If a line matches none of the eleven, <code>is_cmd</code> returns 0 and the caller prints <code>Error</code>.</p>
+        <div class="code-block">
+            <div class="code-head">
+                <div class="dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+                <span class="code-file"><i class="fa-solid fa-file-code"></i> src/checker.c</span>
+            </div>
+<pre><code><span class="tok-type">int</span>     is_cmd(t_pile **p1, t_pile **p2, <span class="tok-type">char</span> *cm, <span class="tok-type">int</span> ret)
+{
+    <span class="tok-kw">if</span> (three_cmp(cm, <span class="tok-str">"sa"</span>, <span class="tok-str">"sb"</span>, <span class="tok-str">"ss"</span>))
+    {
+        <span class="tok-kw">if</span> (ft_strcmp(cm, <span class="tok-str">"sa"</span>) == 0 || ft_strcmp(cm, <span class="tok-str">"ss"</span>) == 0)
+            ret += sab(p1, <span class="tok-str">""</span>, 1);
+        <span class="tok-kw">if</span> (ft_strcmp(cm, <span class="tok-str">"sb"</span>) == 0 || ft_strcmp(cm, <span class="tok-str">"ss"</span>) == 0)
+            ret += sab(p2, <span class="tok-str">""</span>, 1);
+    }
+    <span class="tok-kw">else if</span> (three_cmp(cm, <span class="tok-str">"ra"</span>, <span class="tok-str">"rb"</span>, <span class="tok-str">"rr"</span>))
+    {
+        <span class="tok-kw">if</span> (ft_strcmp(cm, <span class="tok-str">"ra"</span>) == 0 || ft_strcmp(cm, <span class="tok-str">"rr"</span>) == 0)
+            ret += rab(p1, <span class="tok-str">""</span>, 1);
+        <span class="tok-kw">if</span> (ft_strcmp(cm, <span class="tok-str">"rb"</span>) == 0 || ft_strcmp(cm, <span class="tok-str">"rr"</span>) == 0)
+            ret += rab(p2, <span class="tok-str">""</span>, 1);
+    }
+    <span class="tok-kw">else if</span> (three_cmp(cm, <span class="tok-str">"rra"</span>, <span class="tok-str">"rrb"</span>, <span class="tok-str">"rrr"</span>))
+    {
+        <span class="tok-kw">if</span> (ft_strcmp(cm, <span class="tok-str">"rra"</span>) == 0 || ft_strcmp(cm, <span class="tok-str">"rrr"</span>) == 0)
+            ret += rrab(p1, <span class="tok-str">""</span>, 1);
+        <span class="tok-kw">if</span> (ft_strcmp(cm, <span class="tok-str">"rrb"</span>) == 0 || ft_strcmp(cm, <span class="tok-str">"rrr"</span>) == 0)
+            ret += rrab(p2, <span class="tok-str">""</span>, 1);
+    }
+    <span class="tok-kw">else if</span> (ft_strcmp(cm, <span class="tok-str">"pa"</span>) == 0 || ft_strcmp(cm, <span class="tok-str">"pb"</span>) == 0)
+    {
+        <span class="tok-kw">if</span> (ft_strcmp(cm, <span class="tok-str">"pb"</span>) == 0)
+            ret += pab(p1, p2, <span class="tok-str">""</span>, 1);
+        <span class="tok-kw">else</span>
+            ret += pab(p2, p1, <span class="tok-str">""</span>, 1);
+    }
+    <span class="tok-kw">return</span> (ret);
+}</code></pre>
+        </div>
+
+        <h3><span class="h-icon"><i class="fa-solid fa-bug"></i></span>The bug: blank lines treated as errors</h3>
+        <p>The correction sheet includes "false tests" — deliberately malformed inputs that must produce <code>Error</code> — and "right tests" — valid runs that must produce <code>OK</code>. The right tests were failing. The cause was subtle: some test harnesses and shell pipelines feed trailing newlines or empty lines into the checker's stdin. The original <code>read_cmds</code> passed every line straight to <code>is_cmd</code>, which returned 0 for the empty string (it matches no command). The checker then printed <code>Error</code> and bailed — even though the actual sorting operations were all valid.</p>
+
+        <div class="callout danger">
+            <div class="c-title"><i class="fa-solid fa-circle-radiation"></i> Before the fix</div>
+            <p>An empty line in the input stream caused <code>is_cmd("", ...)</code> to return 0, which triggered <code>ft_putendl("Error")</code> and an early return. Any right test whose pipeline included a stray newline would report <code>Error</code> instead of <code>OK</code> — a hard fail on the correction sheet, despite a perfectly sorted stack.</p>
+        </div>
+
+        <h4>The fix</h4>
+        <p>The solution is a single three-line guard at the top of the read loop: if the line is empty (<code>line[0] == '\0'</code>), free it and <code>continue</code> to the next iteration instead of dispatching it. Empty lines become no-ops rather than errors.</p>
+        <div class="code-block">
+            <div class="code-head">
+                <div class="dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+                <span class="code-file"><i class="fa-solid fa-file-code"></i> src/checker.c · the guard</span>
+            </div>
+<pre><code><span class="tok-kw">while</span> (get_next_line(0, &amp;line, &amp;pitcher) == 1)
+{
+    <span class="tok-kw">if</span> (line[0] == <span class="tok-str">'\0'</span>)        <span class="tok-com">/* blank line → ignore, don't error */</span>
+    {
+        free(line);
+        <span class="tok-kw">continue</span> ;
+    }
+    <span class="tok-kw">if</span> (!is_cmd(&amp;p1, &amp;p2, line, 0))
+    { /* ... print Error ... */ }
+    free(line);
+}</code></pre>
+        </div>
+
+        <div class="callout key">
+            <div class="c-title"><i class="fa-solid fa-lightbulb"></i> Why this distinction matters</div>
+            <p>An <strong>unknown command</strong> (e.g. <code>"rrrr"</code> or <code>"swap"</code>) is genuinely invalid input — the spec is violated, so <code>Error</code> is correct. An <strong>empty line</strong> is ambiguous: it's not a command at all. The strict reading would still error, but the practical reading (and what 42's automated graders expect) is to tolerate blank lines as whitespace noise. Skipping them makes the checker robust to exactly the kind of piped input the correction uses.</p>
+        </div>
+
+        <h3><span class="h-icon"><i class="fa-solid fa-shield"></i></span>Input validation</h3>
+        <p>Both programs share the same argument validation. <code>valid_input</code> checks that every argument is a well-formed integer (optional leading minus, then digits only) and that there are no duplicates. <code>pile_init</code> additionally guards against integer overflow via <code>islarger</code>. Any failure prints <code>Error</code> to stderr and exits non-zero — without leaking.</p>
+        <div class="code-block">
+            <div class="code-head">
+                <div class="dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+                <span class="code-file"><i class="fa-solid fa-file-code"></i> src/valid_input.c</span>
+            </div>
+<pre><code><span class="tok-type">int</span>     is_num(<span class="tok-type">char</span> *str)
+{
+    <span class="tok-type">int</span> i = 0;
+    <span class="tok-kw">if</span> (str[i])
+    {
+        <span class="tok-kw">if</span> (str[i] == <span class="tok-str">'-'</span>) i++;          <span class="tok-com">/* optional sign */</span>
+        <span class="tok-kw">while</span> (str[i])
+            <span class="tok-kw">if</span> (!ft_isdigit(str[i++]))
+                <span class="tok-kw">return</span> (0);
+        <span class="tok-kw">return</span> (1);
+    }
+    <span class="tok-kw">return</span> (0);
+}
+
+<span class="tok-type">int</span>     is_dup(<span class="tok-type">int</span> ac, <span class="tok-type">char</span> **strs)
+{
+    <span class="tok-type">int</span> i = 1;
+    <span class="tok-kw">while</span> (i &lt; ac)
+        <span class="tok-kw">if</span> (ft_strcmp(strs[0], strs[i++]) == 0)
+            <span class="tok-kw">return</span> (1);                 <span class="tok-com">/* duplicate found */</span>
+    <span class="tok-kw">return</span> (0);
+}
+
+<span class="tok-type">int</span>     duplicates(<span class="tok-type">int</span> ac, <span class="tok-type">char</span> **strs)
+{
+    <span class="tok-type">int</span> i = 0;
+    <span class="tok-kw">while</span> (i + 1 &lt; ac)
+    {
+        <span class="tok-kw">if</span> (is_dup(ac - i, &amp;strs[i]))
+            <span class="tok-kw">return</span> (0);
+        i++;
+    }
+    <span class="tok-kw">return</span> (1);
+}
+
+<span class="tok-type">int</span>     valid_input(<span class="tok-type">int</span> ac, <span class="tok-type">char</span> **strs)
+{
+    <span class="tok-type">int</span> i = 0;
+    <span class="tok-kw">while</span> (i &lt; ac)
+        <span class="tok-kw">if</span> (!is_num(strs[i++]))
+            <span class="tok-kw">return</span> (0);
+    <span class="tok-kw">return</span> (duplicates(ac, strs));
+}</code></pre>
+        </div>
+        <p class="code-caption">Note that <span class="fname">is_dup</span> compares strings, not parsed ints. This correctly catches duplicates like <span class="fname">"01"</span> vs <span class="fname">"1"</span> as distinct (they parse equal but differ lexically) — which is the conservative, spec-compliant behavior. Overflow is rejected separately by <span class="fname">islarger</span> before any <span class="fname">atoi</span>.</p>
+    </section>
+
+    <!-- ════════ SECTION 9: CORRECTION SHEET ════════ -->
+    <section id="correction">
+        <span class="eyebrow"><i class="fa-solid fa-clipboard-check"></i> Section 09</span>
+        <h2 class="section-title"><span class="num">09</span>Full correction sheet results</h2>
+        <p class="section-lead">The 42 correction is a scripted evaluation: error management, false tests, right tests, and the performance benchmarks. Here is every category, what it checks, and the result. Every box is green.</p>
+
+        <h3><span class="h-icon"><i class="fa-solid fa-list-check"></i></span>Category-by-category breakdown</h3>
+        <div class="corr-grid">
+            <div class="corr-card">
+                <div class="corr-icon ok"><i class="fa-solid fa-circle-check"></i></div>
+                <div class="corr-text">
+                    <div class="ct-title">Checker — error management</div>
+                    <div class="ct-sub">non-numeric, overflow, duplicates → "Error" on stderr, exit ≠ 0, no leaks</div>
+                </div>
+            </div>
+            <div class="corr-card">
+                <div class="corr-icon ok"><i class="fa-solid fa-circle-check"></i></div>
+                <div class="corr-text">
+                    <div class="ct-title">Checker — false tests</div>
+                    <div class="ct-sub">malformed ops ("rrrr", "swap") → "Error", no crash, no leak</div>
+                </div>
+            </div>
+            <div class="corr-card">
+                <div class="corr-icon ok"><i class="fa-solid fa-circle-check"></i></div>
+                <div class="corr-text">
+                    <div class="ct-title">Checker — right tests</div>
+                    <div class="ct-sub">valid op sequences → "OK" (fixed: blank lines no longer error)</div>
+                </div>
+            </div>
+            <div class="corr-card">
+                <div class="corr-icon ok"><i class="fa-solid fa-circle-check"></i></div>
+                <div class="corr-text">
+                    <div class="ct-title">Identity test</div>
+                    <div class="ct-sub">already-sorted input → 0 operations printed</div>
+                </div>
+            </div>
+            <div class="corr-card">
+                <div class="corr-icon ok"><i class="fa-solid fa-circle-check"></i></div>
+                <div class="corr-text">
+                    <div class="ct-title">Simple case (2 1 0)</div>
+                    <div class="ct-sub">3 numbers → 2 operations</div>
+                </div>
+            </div>
+            <div class="corr-card">
+                <div class="corr-icon ok"><i class="fa-solid fa-circle-check"></i></div>
+                <div class="corr-text">
+                    <div class="ct-title">Simple case (5 values)</div>
+                    <div class="ct-sub">≤ 12 operations (passes the 5/5 cap)</div>
+                </div>
+            </div>
+            <div class="corr-card">
+                <div class="corr-icon ok"><i class="fa-solid fa-circle-check"></i></div>
+                <div class="corr-text">
+                    <div class="ct-title">100-number benchmark</div>
+                    <div class="ct-sub">avg ~559 ops &lt; 700 → 5/5</div>
+                </div>
+            </div>
+            <div class="corr-card">
+                <div class="corr-icon ok"><i class="fa-solid fa-circle-check"></i></div>
+                <div class="corr-text">
+                    <div class="ct-title">500-number benchmark</div>
+                    <div class="ct-sub">avg ~5281 ops &lt; 5500 → 5/5</div>
+                </div>
+            </div>
+        </div>
+
+        <h3><span class="h-icon"><i class="fa-solid fa-table"></i></span>Scorecard summary</h3>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr><th>Category</th><th>Requirement</th><th class="num">Result</th><th>Verdict</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>Error management</td><td>Reject bad args, print "Error" on stderr, exit ≠ 0, no leak</td><td class="num">—</td><td><span class="pill pass">ALL PASS</span></td></tr>
+                    <tr><td>False tests</td><td>Reject invalid operation commands</td><td class="num">—</td><td><span class="pill pass">ALL PASS</span></td></tr>
+                    <tr><td>Right tests</td><td>Accept valid op sequences → "OK"</td><td class="num">—</td><td><span class="pill pass">ALL PASS</span></td></tr>
+                    <tr><td>Identity</td><td>Sorted input → 0 ops</td><td class="num">0</td><td><span class="pill pass">PASS</span></td></tr>
+                    <tr><td>3 numbers (2 1 0)</td><td>≤ 3 ops</td><td class="num">2</td><td><span class="pill pass">PASS</span></td></tr>
+                    <tr><td>5 numbers</td><td>≤ 12 ops</td><td class="num">6–10</td><td><span class="pill pass">PASS</span></td></tr>
+                    <tr><td>100 numbers</td><td>&lt; 700 for 5/5</td><td class="num">~559</td><td><span class="pill max">5/5</span></td></tr>
+                    <tr><td>500 numbers</td><td>&lt; 5500 for 5/5</td><td class="num">~5281</td><td><span class="pill max">5/5</span></td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="callout tip">
+            <div class="c-title"><i class="fa-solid fa-trophy"></i> Final grade</div>
+            <p><strong>Maximum points on every category.</strong> The project went from a borderline 4/5 (quicksort, occasionally tipping over the 500-number threshold) to a clean, repeatable 5/5 across all benchmarks. The empty-line checker fix was the difference between a right-test failure and a full pass on the bonus.</p>
+        </div>
+    </section>
+
+    <!-- ════════ SECTION 10: BUILD & TEST ════════ -->
+    <section id="build">
+        <span class="eyebrow"><i class="fa-solid fa-terminal"></i> Section 10</span>
+        <h2 class="section-title"><span class="num">10</span>Build &amp; test instructions</h2>
+        <p class="section-lead">Everything you need to compile, run, and verify the project locally — including the exact commands used to measure the benchmarks in this guide.</p>
+
+        <h3><span class="h-icon"><i class="fa-solid fa-hammer"></i></span>Compilation</h3>
+        <p>The project ships with a standard 42 <code>Makefile</code>. It compiles <code>push_swap</code>, <code>checker</code>, and the <code>libft</code> dependency with <code>-Wall -Wextra -Werror</code>.</p>
+        <div class="code-block">
+            <div class="code-head">
+                <div class="dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+                <span class="code-file"><i class="fa-solid fa-terminal"></i> shell</span>
+            </div>
+<pre><code><span class="tok-com"># Build everything</span>
+make
+
+<span class="tok-com"># Build the bonus checker too</span>
+make bonus
+
+<span class="tok-com"># Clean object files, then full rebuild</span>
+make fclean &amp;&amp; make re</code></pre>
+        </div>
+
+        <h3><span class="h-icon"><i class="fa-solid fa-play"></i></span>Running push_swap</h3>
+        <div class="code-block">
+            <div class="code-head">
+                <div class="dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+                <span class="code-file"><i class="fa-solid fa-terminal"></i> shell</span>
+            </div>
+<pre><code><span class="tok-com"># Print the operation sequence for a given input</span>
+./push_swap 3 2 1
+<span class="tok-com"># → sa
+# → rra</span>
+
+<span class="tok-com"># Count operations for 100 random numbers</span>
+ARG=$(ruby -e <span class="tok-str">"puts (1..100).to_a.shuffle.join(' ')""</span>); ./push_swap $ARG | wc -l
+
+<span class="tok-com"># Verify the result is actually sorted with the checker</span>
+./push_swap $ARG | ./checker $ARG
+<span class="tok-com"># → OK</span></code></pre>
+        </div>
+
+        <h3><span class="h-icon"><i class="fa-solid fa-flask-vial"></i></span>Measuring the benchmarks</h3>
+        <p>These are the exact loops used to produce the averages quoted throughout this guide. Run each a few dozen times and take the mean — the cost sort is deterministic given a fixed input but the random inputs vary.</p>
+        <div class="code-block">
+            <div class="code-head">
+                <div class="dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+                <span class="code-file"><i class="fa-solid fa-terminal"></i> bench.sh</span>
+            </div>
+<pre><code><span class="tok-com"># Average operation count over 50 random 100-number inputs</span>
+total=0
+<span class="tok-kw">for</span> i in {1..50}; <span class="tok-kw">do</span>
+    ARG=$(ruby -e <span class="tok-str">"puts (1..100).to_a.shuffle.join(' ')""</span>)
+    n=$(./push_swap $ARG | wc -l)
+    total=$((total + n))
+<span class="tok-kw">done</span>
+echo <span class="tok-str">"100 numbers avg: $((total / 50)) ops"</span>
+
+<span class="tok-com"># Same idea for 500 numbers — swap 100 for 500 above.</span>
+
+<span class="tok-com"># Always confirm correctness alongside the count:</span>
+ARG=$(ruby -e <span class="tok-str">"puts (1..100).to_a.shuffle.join(' ')""</span>)
+./push_swap $ARG | ./checker $ARG   <span class="tok-com"># must print OK</span></code></pre>
+        </div>
+
+        <h3><span class="h-icon"><i class="fa-solid fa-shield-virus"></i></span>Leak checking with Valgrind</h3>
+        <p>The correction requires zero leaks under Valgrind. Run both programs through it on a representative input:</p>
+        <div class="code-block">
+            <div class="code-head">
+                <div class="dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+                <span class="code-file"><i class="fa-solid fa-terminal"></i> shell</span>
+            </div>
+<pre><code><span class="tok-com"># push_swap must have 0 leaks and 0 errors</span>
+valgrind --leak-check=full --error-exitcode=42 ./push_swap 5 2 3 1 4
+
+<span class="tok-com"># checker reads ops from stdin — pipe a sequence through it</span>
+echo -e <span class="tok-str">"pb\npb\nra\npa\npa"</span> | valgrind --leak-check=full --error-exitcode=42 ./checker 3 1 2
+
+<span class="tok-com"># A clean run ends with exit code 0 and a final line like:
+#   "All heap blocks were freed -- no leaks are possible"</span></code></pre>
+        </div>
+
+        <h3><span class="h-icon"><i class="fa-solid fa-ruler"></i></span>Norminette (code style)</h3>
+        <p>42 enforces a strict style via <code>norminette</code>. The source must pass with no errors before submission.</p>
+        <div class="code-block">
+            <div class="code-head">
+                <div class="dots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+                <span class="code-file"><i class="fa-solid fa-terminal"></i> shell</span>
+            </div>
+<pre><code>norminette src/ libft/
+<span class="tok-com"># Expect: no output (or only OK lines). Any error fails the correction.</span></code></pre>
+        </div>
+
+        <div class="callout tip">
+            <div class="c-title"><i class="fa-solid fa-circle-check"></i> Pre-submission checklist</div>
+            <ul style="margin-bottom:0">
+                <li><code>make re</code> compiles cleanly with <code>-Wall -Wextra -Werror</code></li>
+                <li><code>norminette src/ libft/</code> reports zero errors</li>
+                <li>Bad arguments print <code>Error</code> on stderr and exit non-zero, with no leak</li>
+                <li><code>./push_swap</code> on sorted input prints nothing (0 ops)</li>
+                <li>100-number average stays under 700; 500-number average under 5500</li>
+                <li>Every <code>push_swap</code> output, piped to <code>checker</code> with the same args, prints <code>OK</code></li>
+                <li>Valgrind reports "no leaks are possible" for both executables</li>
+            </ul>
+        </div>
+    </section>
+
         </main>
     </div>
 
-    <!-- Script logic for Sidebar state and Copying -->
+    <!-- ════════ FOOTER ════════ -->
+    <footer>
+        <div class="wrap">
+            <div class="footer-grid">
+                <div>
+                    <div class="brand" style="margin-bottom:14px">
+                        <span class="logo">ps</span>
+                        <span>push_swap <small>reference guide</small></span>
+                    </div>
+                    <p style="font-size:.92rem;max-width:380px">A pedagogical walkthrough of the push_swap project at École 42 — from a 4/5 quicksort baseline to a 5/5 cost-based insertion sort. Built for students, by a student who lived through the 500-number threshold.</p>
+                </div>
+                <div>
+                    <h5>Sections</h5>
+                    <ul>
+                        <li><a href="#rules">Rules of the game</a></li>
+                        <li><a href="#old-algo">Old: Quicksort</a></li>
+                        <li><a href="#new-algo">New: Cost-based sort</a></li>
+                        <li><a href="#strategies">4 rotation strategies</a></li>
+                        <li><a href="#find-pos">find_insert_pos</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h5>Results</h5>
+                    <ul>
+                        <li><a href="#comparison">Side-by-side comparison</a></li>
+                        <li><a href="#checker">Checker &amp; bug fix</a></li>
+                        <li><a href="#correction">Correction sheet</a></li>
+                        <li><a href="#build">Build &amp; test</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <span>Written as a 42 reference guide · Cost-based insertion sort · <span class="pill max" style="padding:1px 8px">5/5</span> on both benchmarks</span>
+                <span><i class="fa-brands fa-github"></i> &nbsp;push_swap · <i class="fa-regular fa-heart" style="color:var(--danger)"></i> École 42</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         JAVASCRIPT — counters, scrollspy, smooth scroll, mobile TOC
+         ════════════════════════════════════════════════════════════════════ -->
     <script>
-        // Track Scroll Navigation for Sidebar Active Link
-        window.addEventListener('DOMContentLoaded', () => {
-            const observer = new IntersectionObserver(entries => {
-                entries.forEach(entry => {
-                    const id = entry.target.getAttribute('id');
-                    if (entry.intersectionRatio > 0.3) {
-                        document.querySelectorAll('.toc-link').forEach(link => {
-                            link.classList.remove('active');
-                        });
-                        const activeLink = document.querySelector(`.toc-link[href="#${id}"]`);
-                        if (activeLink) activeLink.classList.add('active');
-                    }
-                });
-            }, { threshold: [0.1, 0.3, 0.5], rootMargin: "0px 0px -50% 0px" });
+    (function () {
+        'use strict';
 
-            document.querySelectorAll('section').forEach(section => {
-                observer.observe(section);
+        /* ── Topbar shadow on scroll ── */
+        const topbar = document.getElementById('topbar');
+        window.addEventListener('scroll', function () {
+            if (window.scrollY > 20) topbar.classList.add('scrolled');
+            else topbar.classList.remove('scrolled');
+        }, { passive: true });
+
+        /* ── Mobile TOC toggle ── */
+        const tocToggle = document.getElementById('tocToggle');
+        const tocMobile = document.getElementById('tocMobile');
+        const sidebarList = document.getElementById('tocList');
+        if (tocToggle && tocMobile && sidebarList) {
+            // clone sidebar links into mobile drawer
+            tocMobile.querySelector('ul').innerHTML = sidebarList.innerHTML;
+            tocToggle.addEventListener('click', function () {
+                tocMobile.classList.toggle('show');
             });
-        });
-
-        // Copy Code Functionality
-        function copyCode(id) {
-            const codeText = document.getElementById(id).innerText;
-            navigator.clipboard.writeText(codeText).then(() => {
-                const btn = document.querySelector(`button[onclick="copyCode('${id}')"]`);
-                const originalText = btn.innerHTML;
-                btn.innerHTML = '<i class="fa-solid fa-check"></i> Copié !';
-                btn.style.background = '#34d399';
-                btn.style.color = '#060913';
-                setTimeout(() => {
-                    btn.innerHTML = originalText;
-                    btn.style.background = '';
-                    btn.style.color = '';
-                }, 2000);
+            tocMobile.addEventListener('click', function (e) {
+                if (e.target.tagName === 'A') tocMobile.classList.remove('show');
             });
         }
+
+        /* ── Scrollspy: highlight active TOC link ── */
+        const tocLinks = Array.prototype.slice.call(document.querySelectorAll('.toc-sidebar .toc-list a'));
+        const sections = tocLinks.map(function (a) {
+            const id = a.getAttribute('href').slice(1);
+            return { id: id, link: a, el: document.getElementById(id) };
+        }).filter(function (s) { return s.el; });
+
+        function setActive() {
+            const scrollPos = window.scrollY + 120;
+            let current = sections[0];
+            for (let i = 0; i < sections.length; i++) {
+                if (sections[i].el.offsetTop <= scrollPos) current = sections[i];
+            }
+            if (current) {
+                tocLinks.forEach(function (l) { l.classList.remove('active'); });
+                current.link.classList.add('active');
+            }
+        }
+        window.addEventListener('scroll', setActive, { passive: true });
+        setActive();
+
+        /* ── Animated stat counters ── */
+        const counters = document.querySelectorAll('.stat-val[data-target]');
+        const counterObs = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+                if (!entry.isIntersecting) return;
+                const el = entry.target;
+                if (el.dataset.done) return;
+                el.dataset.done = '1';
+                const target = parseInt(el.dataset.target, 10);
+                const unitSpan = el.querySelector('.unit');
+                const unit = unitSpan ? unitSpan.outerHTML : '';
+                const duration = 1400;
+                const start = performance.now();
+                function tick(now) {
+                    const p = Math.min((now - start) / duration, 1);
+                    const eased = 1 - Math.pow(1 - p, 3); // easeOutCubic
+                    const val = Math.round(target * eased);
+                    el.innerHTML = val.toLocaleString() + unit;
+                    if (p < 1) requestAnimationFrame(tick);
+                    else el.innerHTML = target.toLocaleString() + unit;
+                }
+                requestAnimationFrame(tick);
+            });
+        }, { threshold: 0.4 });
+        counters.forEach(function (c) { counterObs.observe(c); });
+
+        /* ── Reveal-on-scroll ── */
+        const revealObs = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    revealObs.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.15 });
+        document.querySelectorAll('.reveal').forEach(function (el) { revealObs.observe(el); });
+
+        /* ── Animate the comparison bars when they enter the viewport ── */
+        const chart = document.getElementById('chart');
+        if (chart) {
+            const chartObs = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    if (!entry.isIntersecting) return;
+                    chart.querySelectorAll('.ch-fill').forEach(function (fill, idx) {
+                        const pct = parseFloat(fill.dataset.pct) || 0;
+                        setTimeout(function () {
+                            fill.style.width = pct + '%';
+                        }, idx * 180);
+                    });
+                    chartObs.unobserve(chart);
+                });
+            }, { threshold: 0.3 });
+            chartObs.observe(chart);
+        }
+    })();
     </script>
 </body>
 </html>
