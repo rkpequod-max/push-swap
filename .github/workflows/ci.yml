@@ -1,0 +1,41 @@
+name: push_swap CI/CD
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-and-test:
+    name: Code Quality and Integration Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout the repository code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      # Step 2: Install required system packages
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc make valgrind ruby python3 python3-pip
+
+      # Step 3: Install 42 Norminette
+      - name: Install Norminette
+        run: |
+          python3 -m pip install --break-system-packages norminette || python3 -m pip install norminette
+
+      # Step 4: Run Norminette code style check
+      - name: Check code formatting (Norminette)
+        run: |
+          norminette src/ libft/
+
+      # Step 5: Make the test script executable and run it
+      - name: Run Test Suite
+        run: |
+          chmod +x tests/ci_test.sh
+          ./tests/ci_test.sh
