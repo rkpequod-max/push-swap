@@ -579,12 +579,13 @@
                 <li><a href="#grading"><span class="toc-num">02</span>Grading scale</a></li>
                 <li><a href="#old-algo"><span class="toc-num">03</span>Old: Quicksort</a></li>
                 <li><a href="#new-algo"><span class="toc-num">04</span>New: Cost-based sort</a></li>
-                <li><a href="#strategies"><span class="toc-num">05</span>The 4 rotation strategies</a></li>
-                <li><a href="#find-pos"><span class="toc-num">06</span>find_insert_pos</a></li>
-                <li><a href="#comparison"><span class="toc-num">07</span>Side-by-side comparison</a></li>
-                <li><a href="#checker"><span class="toc-num">08</span>Checker &amp; the empty-line bug</a></li>
-                <li><a href="#correction"><span class="toc-num">09</span>Correction sheet</a></li>
-                <li><a href="#build"><span class="toc-num">10</span>Build &amp; test</a></li>
+                <li><a href="#sandbox"><span class="toc-num">05</span>Interactive Sandbox</a></li>
+                <li><a href="#strategies"><span class="toc-num">06</span>The 4 rotation strategies</a></li>
+                <li><a href="#find-pos"><span class="toc-num">07</span>find_insert_pos</a></li>
+                <li><a href="#comparison"><span class="toc-num">08</span>Side-by-side comparison</a></li>
+                <li><a href="#checker"><span class="toc-num">09</span>Checker &amp; the empty-line bug</a></li>
+                <li><a href="#correction"><span class="toc-num">10</span>Correction sheet</a></li>
+                <li><a href="#build"><span class="toc-num">11</span>Build &amp; test</a></li>
             </ul>
         </aside>
 
@@ -1152,10 +1153,775 @@
         </div>
     </section>
 
-    <!-- ════════ SECTION 5: 4 STRATEGIES ════════ -->
+    <!-- ════════ SECTION 05: INTERACTIVE SANDBOX ════════ -->
+    <section id="sandbox">
+        <span class="eyebrow"><i class="fa-solid fa-gamepad"></i> Section 05</span>
+        <h2 class="section-title"><span class="num">05</span>Interactive Sandbox &amp; Visualizer</h2>
+        <p class="section-lead">Test your sorting logic in real time. Input custom numbers, perform manual operations, observe how the cost calculator computes the 4 strategies, or let the solver automatically sort the piles step-by-step.</p>
+
+        <style>
+            .sb-grid {
+                display: grid;
+                grid-template-columns: 1.25fr 1fr;
+                gap: 30px;
+                margin: 24px 0;
+            }
+            @media (max-width: 900px) {
+                .sb-grid {
+                    grid-template-columns: 1fr;
+                }
+            }
+            
+            /* Stacks Panel */
+            .sb-stacks-container {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 20px;
+                background: rgba(10, 15, 30, 0.4);
+                border: 1px solid var(--border);
+                border-radius: var(--radius);
+                padding: 24px;
+                min-height: 400px;
+                position: relative;
+            }
+            
+            .sb-stack-col {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                background: rgba(3, 6, 15, 0.6);
+                border: 1px solid rgba(255,255,255,0.02);
+                border-radius: var(--radius-sm);
+                padding: 16px 12px;
+                position: relative;
+            }
+            
+            .sb-stack-title {
+                font-family: var(--mono);
+                font-size: 0.85rem;
+                color: var(--text-muted);
+                margin-bottom: 16px;
+                font-weight: 600;
+                letter-spacing: 0.05em;
+            }
+            
+            .sb-stack-bars {
+                display: flex;
+                flex-direction: column;
+                gap: 6px;
+                width: 100%;
+                flex-grow: 1;
+                justify-content: flex-start;
+            }
+            
+            .sb-bar {
+                height: 32px;
+                border-radius: 6px;
+                font-family: var(--mono);
+                font-size: 0.85rem;
+                font-weight: 600;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0 12px;
+                color: #06121e;
+                transition: all 0.3s var(--ease);
+                border: 1px solid rgba(255, 255, 255, 0.05);
+            }
+            
+            .sb-bar.a {
+                background: linear-gradient(90deg, rgba(56, 189, 248, 0.25), var(--primary));
+                color: #060913;
+            }
+            
+            .sb-bar.b {
+                background: linear-gradient(90deg, rgba(168, 85, 247, 0.25), var(--accent));
+                color: #060913;
+            }
+            
+            .sb-bar.cheapest {
+                box-shadow: 0 0 15px var(--accent);
+                border: 1px solid #fff;
+            }
+            
+            .sb-stack-empty {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                height: 100%;
+                color: var(--text-muted);
+                font-size: 0.85rem;
+                font-style: italic;
+                flex-grow: 1;
+            }
+
+            /* Controls Panel */
+            .sb-controls {
+                display: flex;
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            .sb-input-group {
+                background: var(--bg-card);
+                border: 1px solid var(--border);
+                border-radius: var(--radius);
+                padding: 20px;
+            }
+            
+            .sb-input-row {
+                display: flex;
+                gap: 10px;
+                margin-top: 8px;
+            }
+            
+            .sb-input-field {
+                flex-grow: 1;
+                background: #050811;
+                border: 1px solid var(--border);
+                color: #fff;
+                padding: 10px 14px;
+                border-radius: 8px;
+                font-family: var(--mono);
+                font-size: 0.9rem;
+            }
+            
+            .sb-input-field:focus {
+                outline: none;
+                border-color: var(--primary);
+                box-shadow: 0 0 10px var(--primary-glow);
+            }
+            
+            .sb-btn-grid {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 8px;
+                margin-top: 10px;
+            }
+            
+            .sb-op-section {
+                background: var(--bg-card);
+                border: 1px solid var(--border);
+                border-radius: var(--radius);
+                padding: 20px;
+            }
+            
+            .sb-op-grid {
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 8px;
+                margin-top: 10px;
+            }
+            
+            .sb-op-btn {
+                background: rgba(30, 41, 59, 0.6);
+                border: 1px solid var(--border);
+                color: var(--text-secondary);
+                padding: 8px;
+                border-radius: 6px;
+                font-family: var(--mono);
+                font-size: 0.8rem;
+                font-weight: 600;
+                cursor: pointer;
+                transition: var(--transition-smooth);
+            }
+            
+            .sb-op-btn:hover {
+                border-color: var(--primary);
+                color: var(--primary);
+                background: rgba(56, 189, 248, 0.05);
+            }
+            
+            .sb-op-btn.solve-btn {
+                background: rgba(52, 211, 153, 0.1);
+                border-color: rgba(52, 211, 153, 0.3);
+                color: var(--success);
+            }
+            
+            .sb-op-btn.solve-btn:hover {
+                background: var(--success);
+                color: #060913;
+                border-color: var(--success);
+            }
+
+            .sb-op-btn.step-btn {
+                background: rgba(168, 85, 247, 0.1);
+                border-color: rgba(168, 85, 247, 0.3);
+                color: var(--accent);
+            }
+            
+            .sb-op-btn.step-btn:hover {
+                background: var(--accent);
+                color: #060913;
+                border-color: var(--accent);
+            }
+            
+            /* Status Indicators */
+            .sb-status-card {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                background: rgba(15, 23, 42, 0.6);
+                border: 1px solid var(--border);
+                border-radius: var(--radius-sm);
+                padding: 12px 16px;
+            }
+            
+            .sb-status-val {
+                font-family: var(--mono);
+                font-weight: 700;
+                color: #fff;
+            }
+            
+            /* Live Costs Panel */
+            .sb-costs-panel {
+                background: var(--bg-card);
+                border: 1px solid var(--border);
+                border-radius: var(--radius);
+                padding: 20px;
+                margin-top: 20px;
+            }
+            
+            .sb-cost-row {
+                display: grid;
+                grid-template-columns: 80px 100px 1fr 120px;
+                gap: 12px;
+                padding: 8px 12px;
+                align-items: center;
+                border-bottom: 1px solid var(--border-soft);
+            }
+            
+            .sb-cost-row:last-child {
+                border-bottom: none;
+            }
+            
+            .sb-cost-row.header {
+                font-weight: 600;
+                color: var(--primary);
+                border-bottom: 2px solid var(--border);
+                font-size: 0.8rem;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+            }
+            
+            .sb-cost-badge {
+                display: inline-block;
+                padding: 2px 6px;
+                border-radius: 4px;
+                font-family: var(--mono);
+                font-size: 0.75rem;
+                background: rgba(255,255,255,0.03);
+                border: 1px solid var(--border);
+                text-align: center;
+            }
+            
+            .sb-cost-badge.cheapest-option {
+                border-color: var(--success);
+                background: rgba(52, 211, 153, 0.1);
+                color: var(--success);
+                font-weight: 600;
+            }
+            
+            .sb-log-area {
+                background: #050811;
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 10px 14px;
+                height: 80px;
+                overflow-y: auto;
+                font-family: var(--mono);
+                font-size: 0.8rem;
+                color: var(--text-secondary);
+                margin-top: 10px;
+            }
+        </style>
+
+        <div class="sb-grid">
+            <!-- Left: Stacks visualization -->
+            <div class="sb-stacks-container">
+                <div class="sb-stack-col">
+                    <div class="sb-stack-title">Stack A</div>
+                    <div class="sb-stack-bars" id="sb-stack-a-bars"></div>
+                </div>
+                <div class="sb-stack-col">
+                    <div class="sb-stack-title" style="color: var(--accent);">Stack B</div>
+                    <div class="sb-stack-bars" id="sb-stack-b-bars"></div>
+                </div>
+            </div>
+            
+            <!-- Right: Controls -->
+            <div class="sb-controls">
+                <div class="sb-input-group">
+                    <strong>Initialiser les piles</strong>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px;">Entrez des entiers non-dupliqués séparés par des espaces :</p>
+                    <div class="sb-input-row">
+                        <input type="text" id="sb-input-vals" class="sb-input-field" value="5 1 4 2 3">
+                        <button class="sb-op-btn" style="padding: 10px 16px;" onclick="sbInitFromInput()">Set</button>
+                    </div>
+                    <div class="sb-btn-grid">
+                        <button class="sb-op-btn" onclick="sbInitRandom(5)">Random 5</button>
+                        <button class="sb-op-btn" onclick="sbInitRandom(10)">Random 10</button>
+                        <button class="sb-op-btn" onclick="sbReset()">Reset</button>
+                    </div>
+                </div>
+                
+                <div class="sb-status-card">
+                    <span style="font-size: 0.9rem; color: var(--text-secondary);">Opérations effectuées :</span>
+                    <span class="sb-status-val" id="sb-op-count">0</span>
+                </div>
+                
+                <div class="sb-op-section">
+                    <strong>Opérations manuelles &amp; Solver</strong>
+                    
+                    <div class="sb-op-grid">
+                        <button class="sb-op-btn" onclick="sbExec('sa')">sa</button>
+                        <button class="sb-op-btn" onclick="sbExec('sb')">sb</button>
+                        <button class="sb-op-btn" onclick="sbExec('ss')">ss</button>
+                        <button class="sb-op-btn" onclick="sbResetOpCount()">Clear</button>
+                    </div>
+                    <div class="sb-op-grid">
+                        <button class="sb-op-btn" onclick="sbExec('pa')">pa</button>
+                        <button class="sb-op-btn" onclick="sbExec('pb')">pb</button>
+                        <button class="sb-op-btn" onclick="sbExec('ra')">ra</button>
+                        <button class="sb-op-btn" onclick="sbExec('rb')">rb</button>
+                    </div>
+                    <div class="sb-op-grid">
+                        <button class="sb-op-btn" onclick="sbExec('rra')">rra</button>
+                        <button class="sb-op-btn" onclick="sbExec('rrb')">rrb</button>
+                        <button class="sb-op-btn" onclick="sbExec('rr')">rr</button>
+                        <button class="sb-op-btn" onclick="sbExec('rrr')">rrr</button>
+                    </div>
+                    <div style="display: flex; gap: 8px; margin-top: 12px;">
+                        <button class="sb-op-btn step-btn" style="flex: 1;" onclick="sbStepSolver()">Résoudre 1 étape</button>
+                        <button class="sb-op-btn solve-btn" style="flex: 1;" onclick="sbAutoSolve()">Auto-Solve</button>
+                    </div>
+                    
+                    <div class="sb-log-area" id="sb-log">Log vide. Effectuez des opérations pour commencer.</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Bottom: Live Cost Calculations -->
+        <div class="sb-costs-panel">
+            <strong>Calculateur de coût d'insertion en temps réel</strong>
+            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px; margin-bottom: 12px;">Pour chaque élément présent sur la pile B, on détermine l'emplacement de destination dans A, puis on calcule la longueur des 4 chemins de rotation.</p>
+            <div id="sb-costs-table">
+                <div class="sb-stack-empty">La pile B est vide. Lancez des opérations (ou cliquez sur "pb") pour voir le calculateur de coût en action !</div>
+            </div>
+        </div>
+
+        <script>
+            let sbStackA = [];
+            let sbStackB = [];
+            let sbInitialA = [];
+            let sbOpCount = 0;
+            let sbSolveInterval = null;
+            
+            function sbInit(arr) {
+                sbInitialA = [...arr];
+                sbStackA = [...arr];
+                sbStackB = [];
+                sbOpCount = 0;
+                if (sbSolveInterval) { clearInterval(sbSolveInterval); sbSolveInterval = null; }
+                document.getElementById("sb-op-count").innerText = sbOpCount;
+                document.getElementById("sb-log").innerHTML = "Piles initialisées : " + arr.join(" ");
+                sbRender();
+            }
+            
+            function sbInitFromInput() {
+                const str = document.getElementById("sb-input-vals").value;
+                const arr = str.trim().split(/\s+/).map(Number).filter(n => !isNaN(n));
+                if (arr.length === 0) {
+                    alert("Entrez des nombres valides !");
+                    return;
+                }
+                // Check duplicates
+                if (new Set(arr).size !== arr.length) {
+                    alert("Doublons détectés ! Entrez uniquement des nombres uniques.");
+                    return;
+                }
+                sbInit(arr);
+            }
+            
+            function sbInitRandom(size) {
+                let arr = Array.from({length: size}, (_, i) => i + 1);
+                for (let i = arr.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [arr[i], arr[j]] = [arr[j], arr[i]];
+                }
+                document.getElementById("sb-input-vals").value = arr.join(" ");
+                sbInit(arr);
+            }
+            
+            function sbReset() {
+                sbInit(sbInitialA);
+            }
+            
+            function sbResetOpCount() {
+                sbOpCount = 0;
+                document.getElementById("sb-op-count").innerText = sbOpCount;
+                document.getElementById("sb-log").innerHTML = "Compteur d'opérations réinitialisé.";
+            }
+            
+            function sbLogOp(op) {
+                sbOpCount++;
+                document.getElementById("sb-op-count").innerText = sbOpCount;
+                const log = document.getElementById("sb-log");
+                if (log.innerHTML === "Log vide. Effectuez des opérations pour commencer.") {
+                    log.innerHTML = op;
+                } else {
+                    log.innerHTML += " " + op;
+                }
+                log.scrollTop = log.scrollHeight;
+            }
+            
+            function sbExec(op, silent = false) {
+                let updated = false;
+                switch(op) {
+                    case 'sa':
+                        if (sbStackA.length >= 2) {
+                            [sbStackA[0], sbStackA[1]] = [sbStackA[1], sbStackA[0]];
+                            updated = true;
+                        }
+                        break;
+                    case 'sb':
+                        if (sbStackB.length >= 2) {
+                            [sbStackB[0], sbStackB[1]] = [sbStackB[1], sbStackB[0]];
+                            updated = true;
+                        }
+                        break;
+                    case 'ss':
+                        if (sbStackA.length >= 2) [sbStackA[0], sbStackA[1]] = [sbStackA[1], sbStackA[0]];
+                        if (sbStackB.length >= 2) [sbStackB[0], sbStackB[1]] = [sbStackB[1], sbStackB[0]];
+                        updated = true;
+                        break;
+                    case 'pa':
+                        if (sbStackB.length > 0) {
+                            sbStackA.unshift(sbStackB.shift());
+                            updated = true;
+                        }
+                        break;
+                    case 'pb':
+                        if (sbStackA.length > 0) {
+                            sbStackB.unshift(sbStackA.shift());
+                            updated = true;
+                        }
+                        break;
+                    case 'ra':
+                        if (sbStackA.length >= 2) {
+                            sbStackA.push(sbStackA.shift());
+                            updated = true;
+                        }
+                        break;
+                    case 'rb':
+                        if (sbStackB.length >= 2) {
+                            sbStackB.push(sbStackB.shift());
+                            updated = true;
+                        }
+                        break;
+                    case 'rr':
+                        if (sbStackA.length >= 2) sbStackA.push(sbStackA.shift());
+                        if (sbStackB.length >= 2) sbStackB.push(sbStackB.shift());
+                        updated = true;
+                        break;
+                    case 'rra':
+                        if (sbStackA.length >= 2) {
+                            sbStackA.unshift(sbStackA.pop());
+                            updated = true;
+                        }
+                        break;
+                    case 'rrb':
+                        if (sbStackB.length >= 2) {
+                            sbStackB.unshift(sbStackB.pop());
+                            updated = true;
+                        }
+                        break;
+                    case 'rrr':
+                        if (sbStackA.length >= 2) sbStackA.unshift(sbStackA.pop());
+                        if (sbStackB.length >= 2) sbStackB.unshift(sbStackB.pop());
+                        updated = true;
+                        break;
+                }
+                
+                if (updated) {
+                    if (!silent) sbLogOp(op);
+                    sbRender();
+                }
+                return updated;
+            }
+            
+            function sbFindInsertPos(val) {
+                if (sbStackA.length === 0) return 0;
+                let minIdx = 0;
+                let maxIdx = 0;
+                for (let i = 0; i < sbStackA.length; i++) {
+                    if (sbStackA[i] < sbStackA[minIdx]) minIdx = i;
+                    if (sbStackA[i] > sbStackA[maxIdx]) maxIdx = i;
+                }
+                
+                if (val < sbStackA[minIdx] || val > sbStackA[maxIdx]) {
+                    return minIdx;
+                }
+                
+                for (let i = 0; i < sbStackA.length; i++) {
+                    let idx = (minIdx + i) % sbStackA.length;
+                    if (sbStackA[idx] > val) {
+                        return idx;
+                    }
+                }
+                return minIdx;
+            }
+            
+            function sbCalculateCosts() {
+                if (sbStackB.length === 0) return [];
+                
+                let lenA = sbStackA.length;
+                let lenB = sbStackB.length;
+                let costs = [];
+                
+                for (let i = 0; i < lenB; i++) {
+                    let val = sbStackB[i];
+                    let target = sbFindInsertPos(val);
+                    
+                    let ra = target;
+                    let rra = lenA - target;
+                    let rb = i;
+                    let rrb = lenB - i;
+                    
+                    let c_rr = Math.max(ra, rb) + 1;
+                    let c_rrr = Math.max(rra, rrb) + 1;
+                    let c_mix1 = ra + rrb + 1;
+                    let c_mix2 = rra + rb + 1;
+                    
+                    let minCost = Math.min(c_rr, c_rrr, c_mix1, c_mix2);
+                    let bestStrategy = 'rr';
+                    if (c_rrr === minCost) bestStrategy = 'rrr';
+                    else if (c_mix1 === minCost) bestStrategy = 'ra+rrb';
+                    else if (c_mix2 === minCost) bestStrategy = 'rra+rb';
+                    
+                    costs.push({
+                        val: val,
+                        indexB: i,
+                        targetIndexA: target,
+                        costs: { rr: c_rr, rrr: c_rrr, mix1: c_mix1, mix2: c_mix2 },
+                        minCost: minCost,
+                        bestStrategy: bestStrategy,
+                        details: { ra, rra, rb, rrb }
+                    });
+                }
+                
+                return costs;
+            }
+            
+            function sbRender() {
+                // Render Stack A
+                const containerA = document.getElementById("sb-stack-a-bars");
+                containerA.innerHTML = "";
+                if (sbStackA.length === 0) {
+                    containerA.innerHTML = '<div class="sb-stack-empty">Vide</div>';
+                } else {
+                    const min = Math.min(...sbInitialA);
+                    const max = Math.max(...sbInitialA);
+                    const diff = max - min || 1;
+                    sbStackA.forEach(val => {
+                        const widthPct = 30 + ((val - min) / diff) * 65;
+                        const bar = document.createElement("div");
+                        bar.className = "sb-bar a";
+                        bar.style.width = widthPct + "%";
+                        bar.innerHTML = `<span>${val}</span>`;
+                        containerA.appendChild(bar);
+                    });
+                }
+                
+                // Render Stack B
+                const containerB = document.getElementById("sb-stack-b-bars");
+                containerB.innerHTML = "";
+                
+                let cheapestVal = null;
+                let costs = sbCalculateCosts();
+                if (costs.length > 0) {
+                    let cheapest = costs.reduce((prev, curr) => (prev.minCost < curr.minCost) ? prev : curr);
+                    cheapestVal = cheapest.val;
+                }
+                
+                if (sbStackB.length === 0) {
+                    containerB.innerHTML = '<div class="sb-stack-empty">Vide</div>';
+                } else {
+                    const min = Math.min(...sbInitialA);
+                    const max = Math.max(...sbInitialA);
+                    const diff = max - min || 1;
+                    sbStackB.forEach(val => {
+                        const widthPct = 30 + ((val - min) / diff) * 65;
+                        const bar = document.createElement("div");
+                        bar.className = "sb-bar b";
+                        if (val === cheapestVal) bar.className += " cheapest";
+                        bar.style.width = widthPct + "%";
+                        bar.innerHTML = `<span>${val}</span>`;
+                        containerB.appendChild(bar);
+                    });
+                }
+                
+                // Render Costs Table
+                const tableContainer = document.getElementById("sb-costs-table");
+                if (sbStackB.length === 0) {
+                    tableContainer.innerHTML = '<div class="sb-stack-empty">La pile B est vide. Lancez des opérations (ou cliquez sur "pb") pour voir le calculateur de coût en action !</div>';
+                } else {
+                    let html = '<div class="sb-cost-row header">';
+                    html += '<div>Val B</div><div>Dest A</div><div>Coûts des 4 chemins (rr / rrr / ra+rrb / rra+rb)</div><div>Op. Optimales</div></div>';
+                    
+                    let cheapest = costs.reduce((prev, curr) => (prev.minCost < curr.minCost) ? prev : curr);
+                    
+                    costs.forEach(c => {
+                        let isGlobalCheapest = c.val === cheapest.val;
+                        let rowClass = isGlobalCheapest ? 'style="background: rgba(168,85,247,0.06); border-left: 2px solid var(--accent);"' : '';
+                        html += `<div class="sb-cost-row" ${rowClass}>`;
+                        html += `<div style="font-family: var(--mono); font-weight: 700; color: ${isGlobalCheapest ? 'var(--accent)' : 'var(--text-primary)'};">${c.val} ${isGlobalCheapest ? '<i class="fa-solid fa-star" title="Moins cher"></i>' : ''}</div>`;
+                        html += `<div style="font-family: var(--mono); font-size: 0.85rem;">idx ${c.targetIndexA} (${sbStackA[c.targetIndexA]})</div>`;
+                        
+                        // Costs columns
+                        html += '<div style="display: flex; gap: 8px;">';
+                        const options = ['rr', 'rrr', 'mix1', 'mix2'];
+                        options.forEach(opt => {
+                            let label = opt === 'mix1' ? 'ra+rrb' : opt === 'mix2' ? 'rra+rb' : opt;
+                            let val = c.costs[opt];
+                            let isBest = (opt === 'rr' && c.bestStrategy === 'rr') ||
+                                         (opt === 'rrr' && c.bestStrategy === 'rrr') ||
+                                         (opt === 'mix1' && c.bestStrategy === 'ra+rrb') ||
+                                         (opt === 'mix2' && c.bestStrategy === 'rra+rb');
+                            let badgeClass = isBest ? 'cheapest-option' : '';
+                            html += `<span class="sb-cost-badge ${badgeClass}">${label}: ${val}</span>`;
+                        });
+                        html += '</div>';
+                        
+                        // Action/best details
+                        html += `<div style="font-family: var(--mono); font-size: 0.8rem; text-align: right; color: var(--success);">${c.bestStrategy} (${c.minCost} ops)</div>`;
+                        html += '</div>';
+                    });
+                    tableContainer.innerHTML = html;
+                }
+            }
+            
+            function sbStepSolver() {
+                if (sbStackB.length === 0) {
+                    // Phase final alignment or sorting base 3
+                    if (sbStackA.length > 3) {
+                        // Not drained yet
+                        sbExec('pb');
+                        return;
+                    }
+                    if (sbStackA.length === 3) {
+                        // Sort three
+                        let a = sbStackA[0], b = sbStackA[1], c = sbStackA[2];
+                        if (a > b && b < c && a < c) sbExec('sa');
+                        else if (a > b && b > c) { sbExec('sa'); sbExec('rra'); }
+                        else if (a > b && b < c && a > c) sbExec('ra');
+                        else if (a < b && b > c && a < c) { sbExec('sa'); sbExec('ra'); }
+                        else if (a < b && b > c && a > c) sbExec('rra');
+                        else {
+                            // Fully sorted but maybe rotated
+                            let minVal = Math.min(...sbStackA);
+                            if (sbStackA[0] !== minVal) {
+                                let pos = sbStackA.indexOf(minVal);
+                                if (pos <= sbStackA.length / 2) sbExec('ra');
+                                else sbExec('rra');
+                            } else {
+                                document.getElementById("sb-log").innerHTML += "<br><strong>Tri complété !</strong>";
+                                if (sbSolveInterval) { clearInterval(sbSolveInterval); sbSolveInterval = null; }
+                            }
+                        }
+                        return;
+                    }
+                    // Stack A sorted?
+                    let minVal = Math.min(...sbStackA);
+                    if (sbStackA[0] !== minVal) {
+                        let pos = sbStackA.indexOf(minVal);
+                        if (pos <= sbStackA.length / 2) sbExec('ra');
+                        else sbExec('rra');
+                    } else {
+                        document.getElementById("sb-log").innerHTML += "<br><strong>Tri complété !</strong>";
+                        if (sbSolveInterval) { clearInterval(sbSolveInterval); sbSolveInterval = null; }
+                    }
+                    return;
+                }
+                
+                // We have elements on B. Execute the cheapest insert step!
+                let costs = sbCalculateCosts();
+                let cheapest = costs.reduce((prev, curr) => (prev.minCost < curr.minCost) ? prev : curr);
+                
+                let ra = cheapest.details.ra;
+                let rra = cheapest.details.rra;
+                let rb = cheapest.details.rb;
+                let rrb = cheapest.details.rrb;
+                
+                // Apply operations sequentially
+                if (cheapest.bestStrategy === 'rr') {
+                    if (ra > 0 && rb > 0) { sbExec('rr'); return; }
+                    if (ra > 0) { sbExec('ra'); return; }
+                    if (rb > 0) { sbExec('rb'); return; }
+                } else if (cheapest.bestStrategy === 'rrr') {
+                    if (rra > 0 && rrb > 0) { sbExec('rrr'); return; }
+                    if (rra > 0) { sbExec('rra'); return; }
+                    if (rrb > 0) { sbExec('rrb'); return; }
+                } else if (cheapest.bestStrategy === 'ra+rrb') {
+                    if (ra > 0) { sbExec('ra'); return; }
+                    if (rrb > 0) { sbExec('rrb'); return; }
+                } else if (cheapest.bestStrategy === 'rra+rb') {
+                    if (rra > 0) { sbExec('rra'); return; }
+                    if (rb > 0) { sbExec('rb'); return; }
+                }
+                
+                // Done rotating, push to A
+                sbExec('pa');
+            }
+            
+            function sbAutoSolve() {
+                if (sbSolveInterval) {
+                    clearInterval(sbSolveInterval);
+                    sbSolveInterval = null;
+                    document.getElementById("sb-log").innerHTML += "<br>Auto-solve mis en pause.";
+                    return;
+                }
+                
+                // If already sorted, reset first
+                let minVal = Math.min(...sbStackA);
+                let isSorted = sbStackB.length === 0 && sbStackA.every((v, i) => i === 0 || sbStackA[i-1] < v);
+                if (isSorted) {
+                    sbReset();
+                }
+                
+                // Initial drain
+                sbSolveInterval = setInterval(() => {
+                    let totalA = sbStackA.length;
+                    let totalB = sbStackB.length;
+                    let minVal = Math.min(...sbInitialA);
+                    let isSorted = sbStackB.length === 0 && sbStackA.every((v, i) => i === 0 || sbStackA[i-1] < v);
+                    
+                    if (isSorted && sbStackA[0] === minVal) {
+                        clearInterval(sbSolveInterval);
+                        sbSolveInterval = null;
+                        document.getElementById("sb-log").innerHTML += "<br><strong>Tri complété avec succès !</strong>";
+                        return;
+                    }
+                    
+                    if (totalA > 3 && totalB === 0) {
+                        sbExec('pb');
+                    } else {
+                        sbStepSolver();
+                    }
+                }, 180);
+            }
+            
+            // Auto initialize on load
+            window.addEventListener('DOMContentLoaded', () => {
+                sbInit([5, 1, 4, 2, 3]);
+            });
+        </script>
+    </section>
+
+    <!-- ════════ SECTION 6: 4 STRATEGIES ════════ -->
     <section id="strategies">
-        <span class="eyebrow"><i class="fa-solid fa-arrows-spin"></i> Section 05</span>
-        <h2 class="section-title"><span class="num">05</span>The four rotation strategies</h2>
+        <span class="eyebrow"><i class="fa-solid fa-arrows-spin"></i> Section 06</span>
+        <h2 class="section-title"><span class="num">06</span>The four rotation strategies</h2>
         <p class="section-lead">To move an element from the top of B into its correct slot in A, we must (a) bring that element to the top of B and (b) bring its target slot to the top of A. Each stack can be rotated up or down, giving <strong>2 × 2 = 4</strong> combinations. Each combination has a different cost, and the algorithm always picks the cheapest.</p>
 
         <div class="callout tip">
@@ -1317,8 +2083,8 @@
 
     <!-- ════════ SECTION 6: FIND_INSERT_POS ════════ -->
     <section id="find-pos">
-        <span class="eyebrow"><i class="fa-solid fa-magnifying-glass"></i> Section 06</span>
-        <h2 class="section-title"><span class="num">06</span><code>find_insert_pos()</code>: the circular search</h2>
+        <span class="eyebrow"><i class="fa-solid fa-magnifying-glass"></i> Section 07</span>
+        <h2 class="section-title"><span class="num">07</span><code>find_insert_pos()</code>: the circular search</h2>
         <p class="section-lead">A is always sorted — but <em>rotated</em>. The minimum isn't necessarily at the top; it sits somewhere in the middle. To insert a value from B, we must find its correct slot in this rotated, circular sorted sequence. This is the trickiest part of the whole algorithm to get right.</p>
 
         <h3><span class="h-icon"><i class="fa-solid fa-circle-notch"></i></span>What "sorted but rotated" means</h3>
@@ -1453,8 +2219,8 @@
 
     <!-- ════════ SECTION 7: COMPARISON ════════ -->
     <section id="comparison">
-        <span class="eyebrow"><i class="fa-solid fa-chart-column"></i> Section 07</span>
-        <h2 class="section-title"><span class="num">07</span>Side-by-side comparison</h2>
+        <span class="eyebrow"><i class="fa-solid fa-chart-column"></i> Section 08</span>
+        <h2 class="section-title"><span class="num">08</span>Side-by-side comparison</h2>
         <p class="section-lead">Here's the payoff. Same project, same inputs, two algorithms. The cost-based sort shaves 37% off the operation count for 100 numbers and edges under the 5500 line for 500 numbers — enough to convert a 4/5 into a clean 5/5 on both benchmarks.</p>
 
         <h3><span class="h-icon"><i class="fa-solid fa-table"></i></span>Operation counts</h3>
@@ -1595,8 +2361,8 @@
 
     <!-- ════════ SECTION 8: CHECKER ════════ -->
     <section id="checker">
-        <span class="eyebrow"><i class="fa-solid fa-shield-halved"></i> Section 08</span>
-        <h2 class="section-title"><span class="num">08</span>The checker &amp; the empty-line bug</h2>
+        <span class="eyebrow"><i class="fa-solid fa-shield-halved"></i> Section 09</span>
+        <h2 class="section-title"><span class="num">09</span>The checker &amp; the empty-line bug</h2>
         <p class="section-lead">A perfect <code>push_swap</code> means nothing if the checker rejects valid input. The bonus <code>checker</code> program reads operations from stdin and replays them. During the correction, a single bug — treating blank lines as errors — silently failed otherwise-correct test runs. Here's how the checker works and how that bug was found and fixed.</p>
 
         <h3><span class="h-icon"><i class="fa-solid fa-gear"></i></span>What the checker does</h3>
@@ -1770,8 +2536,8 @@
 
     <!-- ════════ SECTION 9: CORRECTION SHEET ════════ -->
     <section id="correction">
-        <span class="eyebrow"><i class="fa-solid fa-clipboard-check"></i> Section 09</span>
-        <h2 class="section-title"><span class="num">09</span>Full correction sheet results</h2>
+        <span class="eyebrow"><i class="fa-solid fa-clipboard-check"></i> Section 10</span>
+        <h2 class="section-title"><span class="num">10</span>Full correction sheet results</h2>
         <p class="section-lead">The 42 correction is a scripted evaluation: error management, false tests, right tests, and the performance benchmarks. Here is every category, what it checks, and the result. Every box is green.</p>
 
         <h3><span class="h-icon"><i class="fa-solid fa-list-check"></i></span>Category-by-category breakdown</h3>
@@ -1861,8 +2627,8 @@
 
     <!-- ════════ SECTION 10: BUILD & TEST ════════ -->
     <section id="build">
-        <span class="eyebrow"><i class="fa-solid fa-terminal"></i> Section 10</span>
-        <h2 class="section-title"><span class="num">10</span>Build &amp; test instructions</h2>
+        <span class="eyebrow"><i class="fa-solid fa-terminal"></i> Section 11</span>
+        <h2 class="section-title"><span class="num">11</span>Build &amp; test instructions</h2>
         <p class="section-lead">Everything you need to compile, run, and verify the project locally — including the exact commands used to measure the benchmarks in this guide.</p>
 
         <h3><span class="h-icon"><i class="fa-solid fa-hammer"></i></span>Compilation</h3>
