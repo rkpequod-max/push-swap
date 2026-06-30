@@ -42,8 +42,12 @@ int             is_cmd(t_pile **p1, t_pile **p2, char *cm, int ret)
                         ret += rrab(p2, "", 1);
         }
         else if (ft_strcmp(cm, "pa") == 0 || ft_strcmp(cm, "pb") == 0)
-                ret += ((ft_strcmp(cm, "pb") == 0) ? pab(p1, p2, "", 1)
-                : pab(p2, p1, "", 1));
+        {
+                if (ft_strcmp(cm, "pb") == 0)
+                        ret += pab(p1, p2, "", 1);
+                else
+                        ret += pab(p2, p1, "", 1);
+        }
         return (ret);
 }
 
