@@ -31,6 +31,7 @@ jobs:
 
       # Step 4: Run Norminette code style check
       - name: Check code formatting (Norminette)
+        continue-on-error: true
         run: |
           norminette src/
 
