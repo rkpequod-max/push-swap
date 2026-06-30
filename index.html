@@ -774,6 +774,24 @@
             0% { transform: translateX(100%); }
             100% { transform: translateX(-100%); }
         }
+    
+        /* Language Toggle */
+        .lang-toggle { display: inline-flex; gap: 2px; margin-left: 12px; }
+        .lang-btn {
+            background: transparent; border: 1px solid var(--border-color);
+            color: var(--text-secondary); padding: 4px 12px; font-size: .8rem;
+            font-family: var(--mono-font); cursor: pointer; transition: var(--transition-smooth);
+            border-radius: 4px;
+        }
+        .lang-btn:hover { border-color: var(--primary); color: var(--primary); }
+        .lang-btn.active { background: var(--primary); color: #0b1120; border-color: var(--primary); font-weight: 600; }
+        [data-theme="nier"] .lang-btn { border-color: #4a4640; color: #D4CFC6; }
+        [data-theme="nier"] .lang-btn:hover { border-color: #C4362B; color: #C4362B; }
+        [data-theme="nier"] .lang-btn.active { background: #C4362B; color: #fff; border-color: #C4362B; }
+        .lang-btn.fr-active { display: none; }
+        body.lang-fr .lang-btn.fr-active { display: inline-block; }
+        body.lang-fr .lang-btn.en-active { display: none; }
+
     </style>
 </head>
 <body>
@@ -788,6 +806,10 @@
             <nav class="nav-actions">
                 <a href="#comparison" class="github-link"><i class="fa-solid fa-chart-column"></i><span>Benchmarks</span></a>
                 <a href="#build" class="github-link"><i class="fa-solid fa-terminal"></i><span>Build &amp; Test</span></a>
+                <div class="lang-toggle">
+                    <button class="lang-btn active" id="langEN" onclick="setLang('en')">EN</button>
+                    <button class="lang-btn" id="langFR" onclick="setLang('fr')">FR</button>
+                </div>
                 <button class="toc-toggle" id="tocToggle" aria-label="Toggle contents"><i class="fa-solid fa-list"></i></button>
             </nav>
         </div>
@@ -890,10 +912,9 @@
                 <li><a href="#correction"><span class="toc-num">10</span>Correction sheet</a></li>
                 <li><a href="#complexity"><span class="toc-num">11</span>Complexity analysis</a></li>
                 <li><a href="#memory"><span class="toc-num">12</span>Memory &amp; leaks</a></li>
-                <li><a href="#norminette"><span class="toc-num">13</span>Norminette compliance</a></li>
-                <li><a href="#alternatives"><span class="toc-num">14</span>Alternative algorithms</a></li>
-                <li><a href="#faq"><span class="toc-num">15</span>FAQ</a></li>
-                <li><a href="#build"><span class="toc-num">16</span>Build &amp; test</a></li>
+                                <li><a href="#alternatives"><span class="toc-num">13</span>Algorithmes alternatifs</a></li>
+                <li><a href="#faq"><span class="toc-num">14</span>FAQ</a></li>
+                <li><a href="#build"><span class="toc-num">15</span>Compilation &amp; test</a></li>
             </ul>
         </aside>
 
@@ -3119,62 +3140,11 @@ void free_pile(t_pile **p)
         </div>
     </section>
 
-    <!-- ════════ SECTION 13: NORMINETTE COMPLIANCE ════════ -->
-    <section id="norminette">
-        <span class="eyebrow"><i class="fa-solid fa-ruler"></i> Section 13</span>
-        <h2 class="section-title"><span class="num">13</span>Norminette compliance</h2>
-        <p class="section-lead">The 42 norminette enforces strict coding standards. Here's how the code complies — and where the libft is grandfathered.</p>
 
-        <h3><span class="h-icon"><i class="fa-solid fa-list-check"></i></span>Key rules &amp; compliance</h3>
-        <div class="card-grid two-col">
-            <div class="card">
-                <h4>✅ Line length ≤ 80 chars</h4>
-                <p>Every line in <code>src/</code> is within 80 columns. Long ternary expressions are split using intermediate variables.</p>
-                <div class="code-block">
-<pre><code><span class="cmt">// Instead of one long line:</span>
-maxpos = (ft_abs(maxpos - i) &lt; maxpos)
-    ? -ft_abs(maxpos - i) : maxpos;</code></pre>
-                </div>
-            </div>
-            <div class="card">
-                <h4>✅ Functions ≤ 25 lines</h4>
-                <p><code>move_pivot()</code>, <code>sort_three()</code>, <code>find_insert_pos()</code> are all under 25 lines. <code>cost_sort()</code> is longer (would be split in strict submission).</p>
-            </div>
-            <div class="card">
-                <h4>✅ No for loops</h4>
-                <p>Only <code>while</code> loops — the 42 norm forbids <code>for</code>.</p>
-                <div class="code-block">
-<pre><code>i = 0;
-while (i &lt; len)
-{
-    <span class="cmt">// process arr[i]</span>
-    i++;
-}</code></pre>
-                </div>
-            </div>
-            <div class="card">
-                <h4>✅ Tab indentation</h4>
-                <p>All source files use tabs for indentation. The Makefile uses tab-prefixed recipe lines.</p>
-            </div>
-            <div class="card">
-                <h4>✅ 42 header format</h4>
-                <p>Every <code>.c</code> and <code>.h</code> file begins with the standard 42 header with author, creation date, update date.</p>
-            </div>
-            <div class="card">
-                <h4>⚠ Max 5 variables</h4>
-                <p><code>cost_sort()</code> uses more than 5 locals for cost computation. In strict submission, these would be grouped into a struct. The libft is fully compliant.</p>
-            </div>
-        </div>
-
-        <div class="callout warn">
-            <p><strong>libft compatibility:</strong> The libft uses older 42 conventions that trigger norminette v3 warnings. CI runs <code>norminette src/</code> only. The <code>src/</code> directory is fully compliant.</p>
-        </div>
-    </section>
-
-    <!-- ════════ SECTION 14: ALTERNATIVE ALGORITHMS ════════ -->
+    <!-- ════════ SECTION 13: ALTERNATIVE ALGORITHMS ════════ -->
     <section id="alternatives">
-        <span class="eyebrow"><i class="fa-solid fa-route"></i> Section 14</span>
-        <h2 class="section-title"><span class="num">14</span>Alternative algorithms explored</h2>
+        <span class="eyebrow"><i class="fa-solid fa-route"></i> Section 13</span>
+        <h2 class="section-title"><span class="num">13</span>Alternative algorithms explored</h2>
         <p class="section-lead">Before settling on cost-based insertion sort, three other algorithms were considered. Here's why each was rejected.</p>
 
         <div class="card-grid two-col">
@@ -3221,10 +3191,10 @@ while (i &lt; len)
         </div>
     </section>
 
-    <!-- ════════ SECTION 15: FAQ ════════ -->
+    <!-- ════════ SECTION 14: FAQ ════════ -->
     <section id="faq">
-        <span class="eyebrow"><i class="fa-solid fa-circle-question"></i> Section 15</span>
-        <h2 class="section-title"><span class="num">15</span>FAQ — Frequently asked questions</h2>
+        <span class="eyebrow"><i class="fa-solid fa-circle-question"></i> Section 14</span>
+        <h2 class="section-title"><span class="num">14</span>FAQ — Frequently asked questions</h2>
         <p class="section-lead">Real questions from 42 students, with code references and practical advice.</p>
 
         <div class="card-grid two-col">
@@ -3286,10 +3256,10 @@ while (i &lt; len)
         </div>
     </section>
 
-    <!-- ════════ SECTION 16: BUILD & TEST ════════ -->
+    <!-- ════════ SECTION 15: BUILD & TEST ════════ -->
     <section id="build">
-        <span class="eyebrow"><i class="fa-solid fa-terminal"></i> Section 16</span>
-        <h2 class="section-title"><span class="num">16</span>Build &amp; test instructions</h2>
+        <span class="eyebrow"><i class="fa-solid fa-terminal"></i> Section 15</span>
+        <h2 class="section-title"><span class="num">15</span>Build &amp; test instructions</h2>
         <p class="section-lead">Everything you need to compile, run, and verify the project locally — including the exact commands used to measure the benchmarks in this guide.</p>
 
         <h3><span class="h-icon"><i class="fa-solid fa-hammer"></i></span>Compilation</h3>
@@ -3542,5 +3512,100 @@ echo -e <span class="tok-str">"pb\npb\nra\npa\npa"</span> | valgrind --leak-chec
 
     })();
     </script>
+
+<script>
+// Language switching system
+const FR_TRANSLATIONS = {
+    // Hero
+    'push_swap reference guide': 'push_swap guide de référence',
+    'A pedagogical walkthrough of the push_swap project': 'Un guide pédagogique du projet push_swap',
+    // Section titles
+    'Rules of the game': 'Règles du jeu',
+    'The grading scale': 'Le barème',
+    'The old algorithm: recursive quicksort': 'Ancien algorithme : quicksort récursif',
+    'The new algorithm: cost-based insertion sort': 'Nouvel algorithme : tri par insertion à coût optimal',
+    'Interactive Sandbox & Visualizer': 'Bac à sable interactif & Visualiseur',
+    'The 4 rotation strategies': 'Les 4 stratégies de rotation',
+    'Side-by-side comparison': 'Comparaison côte à côte',
+    'Checker & the empty-line bug': 'Checker & le bug des lignes vides',
+    'Correction sheet': 'Fiche de correction',
+    'Complexity analysis': 'Analyse de complexité',
+    'Memory management & leak prevention': 'Gestion mémoire & prévention des fuites',
+    'Alternative algorithms explored': 'Algorithmes alternatifs explorés',
+    'Build & test instructions': 'Compilation & tests',
+    // Nav
+    'Benchmarks': 'Performances',
+    'Build & Test': 'Compiler',
+    'Contents': 'Sommaire',
+    // Common
+    'Operations': 'Opérations',
+    'Average': 'Moyenne',
+    'Grade': 'Note',
+    'Improvement': 'Amélioration',
+};
+
+const FR_PLACEHOLDERS = {
+    'push_swap gives you two stacks': 'push_swap vous donne deux piles',
+    'Your grade is determined purely': 'Votre note est déterminée purement',
+    'The first version of this project': 'La première version de ce projet',
+    'Instead of guessing pivots': 'Au lieu de deviner des pivots',
+    'Why does an O(n²)': 'Pourquoi un algorithme O(n²)',
+    'A single memory leak': 'Une seule fuite mémoire',
+    'Before settling on cost-based': 'Avant de choisir le tri par coût',
+    'Real questions from 42 students': 'Vraies questions d\'étudiants 42',
+    'Everything you need to compile': 'Tout ce dont vous avez besoin',
+};
+
+function setLang(lang) {
+    document.body.classList.toggle('lang-fr', lang === 'fr');
+    document.getElementById('langEN').classList.toggle('active', lang === 'en');
+    document.getElementById('langFR').classList.toggle('active', lang === 'fr');
+    localStorage.setItem('ps-lang', lang);
+
+    // Translate all elements with text content
+    const allElements = document.querySelectorAll('h1, h2, h3, h4, h5, p, span, small, li, td, th, a, button, code, pre');
+    allElements.forEach(el => {
+        if (el.children.length === 0 && el.textContent.trim()) {
+            const enText = el.textContent.trim();
+            if (lang === 'fr') {
+                // Check exact match
+                if (FR_TRANSLATIONS[enText]) {
+                    if (!el.dataset.en) el.dataset.en = enText;
+                    el.textContent = FR_TRANSLATIONS[enText];
+                    return;
+                }
+                // Check startsWith
+                for (const [en, fr] of Object.entries(FR_PLACEHOLDERS)) {
+                    if (enText.startsWith(en)) {
+                        if (!el.dataset.en) el.dataset.en = enText;
+                        el.textContent = enText.replace(en, fr);
+                        return;
+                    }
+                }
+                // Store original if not stored
+                if (!el.dataset.en) el.dataset.en = enText;
+            } else {
+                // Restore English
+                if (el.dataset.en) {
+                    el.textContent = el.dataset.en;
+                }
+            }
+        }
+    });
+
+    // Update page title
+    document.title = lang === 'fr'
+        ? 'push_swap — Guide de Référence, Algorithme & CI/CD (École 42)'
+        : 'push_swap — Reference Guide, Algorithm & CI/CD (École 42)';
+}
+
+// Load saved language
+(function() {
+    const saved = localStorage.getItem('ps-lang') || 'en';
+    if (saved === 'fr') {
+        setLang('fr');
+    }
+})();
+</script>
 </body>
 </html>
